@@ -133,7 +133,6 @@ sub start_vm {
     close $runf;
 
     # remove old screenshots
-    print "remove_tree $bmwqemu::screenshotpath\n";
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 
