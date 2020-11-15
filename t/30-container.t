@@ -18,7 +18,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Warnings ':report_warnings';
-use OpenQA::Test::TimeLimit '40';
+use OpenQA::Test::TimeLimit '300';
 use Mojo::File qw(tempdir);
 use FindBin '$Bin';
 use Mojo::Util qw(scope_guard);
@@ -31,8 +31,16 @@ mkdir $pool_dir;
 chdir $pool_dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
-my $out = qx{podman build -f $toplevel_dir/docker/isotovideo/Dockerfile.qemu . 2>&1};
+my $out = qx{docker build -f $toplevel_dir/docker/isotovideo/Dockerfile.qemu . 2>&1};
 my $rc  = $? >> 8;
 is $rc,      0,            'container could be built successfully' or diag "Output: $out";
-unlike $out, qr/[eE]rror/, 'no errors building container' if $out;
+like $out, qr/Successfully built/, 'success message found in output' if $out;
+# TODO run container, e.g. build it with custom tag, e.g. name of tempdir or
+# random id
+# TODO run with like `podman run --rm -it
+# 72a623d6efcb87e1fa188bc49e2ede389bd1be8b9aed9a1592d23234ad64d321 --help`
+# TODO compare output against `Usage:\n.*isotovideo.*EXIT 0`
+# TODO research about industry standards for testing Dockerfile
+# TODO exclude this test from running unless explicitly asked for, e.g. to
+# prevent massive downloads over metered networks
 done_testing;
