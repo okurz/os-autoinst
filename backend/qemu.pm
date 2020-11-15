@@ -636,7 +636,7 @@ sub start_qemu {
     }
 
     die "no kvm-img/qemu-img found\n" unless $qemuimg;
-    die "no Qemu/KVM found\n"         unless $qemubin;
+    die "no Qemu/KVM found. Ensure one of '@execs' are installed in /usr/bin\n" unless $qemubin;
 
     $self->{proc}->qemu_bin($qemubin);
     $self->{proc}->qemu_img_bin($qemuimg);

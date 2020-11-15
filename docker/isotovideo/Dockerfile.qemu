@@ -1,0 +1,6 @@
+#!BuildTag: isotovideo:qemu
+
+FROM opensuse/tumbleweed
+# install os-autoinst and qemu-kvm+qemu-tools as needed for qemu backend
+RUN zypper -n in os-autoinst qemu-kvm qemu-tools
+ENTRYPOINT ["/usr/bin/isotovideo"]
