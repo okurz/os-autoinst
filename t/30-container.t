@@ -31,5 +31,8 @@ mkdir $pool_dir;
 chdir $pool_dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
-ok 'pass';
+my $out = qx{podman build -f $toplevel_dir/docker/isotovideo/Dockerfile.qemu . 2>&1};
+my $rc  = $? >> 8;
+is $rc,      0,            'container could be built successfully' or diag "Output: $out";
+unlike $out, qr/[eE]rror/, 'no errors building container' if $out;
 done_testing;
