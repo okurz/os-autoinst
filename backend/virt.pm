@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,20 +15,18 @@
 
 package backend::virt;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use base 'backend::baseclass';
 
 use testapi 'get_var';
 use bmwqemu;
 
-sub new {
-    my ($class) = @_;
+sub new ($class) {
     my $self = $class->SUPER::new;
     $bmwqemu::vars{QEMURAM}  //= 1024;
     $bmwqemu::vars{QEMUCPUS} //= 1;
     return $self;
 }
-
 
 1;
