@@ -16,8 +16,7 @@
 
 package consoles::sshVirtsh;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 
 use base 'consoles::sshXtermVt';
