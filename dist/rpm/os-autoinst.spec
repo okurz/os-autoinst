@@ -159,7 +159,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 ExcludeArch:    %{ix86}
 
 %description
-The OS-autoinst project aims at providing a means to run fully
+The os-autoinst project aims at providing a means to run fully
 automated tests. Especially to run tests of basic and low-level
 operating system components such as bootloader, kernel, installer
 and upgrade, which can not easily and safely be tested with other
@@ -208,6 +208,53 @@ Requires:       qemu-x86 >= 4.0.0
 %description qemu-x86
 Convenience package providing os-autoinst and qemu-x86 dependencies.
 %endif
+%ifarch aarch64
+%package qemu-aarch64
+Summary:        Convenience package providing os-autoinst+qemu-aarch64
+Group:          Development/Tools/Other
+Requires:       os-autoinst
+Requires:       qemu-aarch64
+Requires:       qemu-tools
+
+%description qemu-aarch64
+Convenience package providing os-autoinst and qemu-aarch64 dependencies.
+%endif
+
+%package local
+Summary:        OS-level test automation - package variant for local test execution
+Group:          Development/Tools/Other
+Requires:       os-autoinst
+Requires:       qemu >= 2.0.0
+%ifarch x86_64
+Requires:       os-autoinst-qemu-x86
+%endif
+%ifarch arm
+Requires:       os-autoinst-qemu-aarch64
+%endif
+
+%description local
+This package contains additional dependencies to execute isotovideo locally,
+mainly qemu.
+
+%package remote
+Summary:        OS-level test automation - package variant for remote test execution
+Group:          Development/Tools/Other
+Requires:       os-autoinst
+Requires:       x3270 icewm-lite xorg-x11-Xvnc xdotool ipmitool net-snmp
+
+# TODO from salt states, should be integrated properly
+      - qemu-ovmf-x86_64 # for UEFI
+      - qemu: '>=2.3'
+      {% if grains['osarch'] == 'x86_64' %}
+      - qemu-x86
+      {% endif %}
+      {% if grains['osarch'] == 'ppc64le' %}
+      - qemu-ppc
+      - qemu-ipxe
+      - qemu-vgabios
+      {% endif %}
+      {% if grains['osarch'] == 'aarch64' %}
+
 
 %package swtpm
 Summary:        Convenience package providing os-autoinst+swtpm
@@ -237,6 +284,10 @@ Requires:       os-autoinst
 %description ipmi-deps
 Convenience package providing os-autoinst + ipmi worker jumphost dependencies.
 %endif
+
+%description remote
+This package contains additional dependencies to execute isotovideo against
+remote instances, for example using IPMI, powerVM, s390x z/VM, svirt.
 
 %prep
 %setup -q
