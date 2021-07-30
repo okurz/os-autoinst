@@ -24,6 +24,7 @@ our $VERSION;
 our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstate save_vars);
 
 require IPC::System::Simple;
+use common;
 use log;
 
 sub mydie;
@@ -31,7 +32,7 @@ sub mydie;
 $| = 1;
 
 
-our $default_timeout = 30;    # assert timeout, 0 is a valid timeout
+our $default_timeout      = 30;                        # assert timeout, 0 is a valid timeout
 our $openqa_default_share = '/var/lib/openqa/share';
 
 my @ocrrect;
@@ -45,13 +46,8 @@ our $screenshotpath = "qemuscreenshot";
 # fourth is Debian's ovmf package.
 our @ovmf_locations = (
     '/usr/share/qemu/ovmf-x86_64-ms-code.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd',
-    '/usr/share/edk2/ovmf/OVMF_CODE.fd', '/usr/share/OVMF/OVMF_CODE.fd'
+    '/usr/share/edk2/ovmf/OVMF_CODE.fd',       '/usr/share/OVMF/OVMF_CODE.fd'
 );
-
-our %vars;
-tie %vars, 'bmwqemu::tiedvars', %vars;
-
-sub result_dir () { 'testresults' }
 
 # deprecated functions, moved to log module
 {
@@ -87,7 +83,7 @@ sub load_vars () {
     eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>); };
     die "parse error in vars.json:\n$@" if $@;
     close($fh);
-    %vars = %{$ret};
+    %common::vars = %{$ret};
     return;
 }
 
@@ -96,12 +92,12 @@ sub save_vars (%args) {
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
     flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
-    truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
+    truncate($fd, 0)    or die "cannot truncate vars.json: $!\n";
 
-    my $write_vars = \%vars;
+    my $write_vars = \%common::vars;
     if ($args{no_secret}) {
         $write_vars = {};
-        $write_vars->{$_} = $vars{$_} for (grep !/(^_SECRET_|_PASSWORD)/, keys(%vars));
+        $write_vars->{$_} = $vars{$_} for (grep !/(^_SECRET_|_PASSWORD)/, keys(%common::vars));
     }
 
     # make sure the JSON is sorted
@@ -119,7 +115,7 @@ our $scriptdir;
 sub init () {
     load_vars();
 
-    $vars{BACKEND} ||= "qemu";
+    $common::vars{BACKEND} ||= "qemu";
 
     # remove directories for asset upload
     remove_tree("assets_public");
@@ -133,12 +129,12 @@ sub init () {
 }
 
 sub _check_publish_vars () {
-    return 0 unless my $nd = $vars{NUMDISKS};
-    my @hdds = map { $vars{"HDD_$_"} } 1 .. $nd;
+    return 0 unless my $nd = $common::vars{NUMDISKS};
+    my @hdds = map { $common::vars{"HDD_$_"} } 1 .. $nd;
     for my $i (1 .. $nd) {
         for my $type (qw(STORE PUBLISH FORCE_PUBLISH)) {
             my $name = $type . "_HDD_$i";
-            next unless my $out = $vars{$name};
+            next unless my $out = $common::vars{$name};
             die "HDD_$i also specified in $name. This is not supported" if grep { $_ && $_ eq $out } @hdds;
         }
     }
@@ -147,17 +143,17 @@ sub _check_publish_vars () {
 
 sub ensure_valid_vars () {
     # defaults
-    $vars{QEMUPORT} ||= 15222;
-    $vars{VNC} ||= 90;
+    $common::vars{QEMUPORT} ||= 15222;
+    $common::vars{VNC}      ||= 90;
     # openQA already sets a random string we can reuse
-    $vars{JOBTOKEN} ||= random_string(10);
+    $common::vars{JOBTOKEN} ||= random_string(10);
 
     if ($gocrbin && !-x $gocrbin) {
         $gocrbin = undef;
     }
 
-    die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
-    die "No scripts in $vars{CASEDIR}" if !-e "$vars{CASEDIR}";
+    die "CASEDIR variable not set, unknown test case directory" if !defined $common::vars{CASEDIR};
+    die "No scripts in $common::vars{CASEDIR}"                          if !-e "$common::vars{CASEDIR}";
     _check_publish_vars();
     save_vars();
 }
@@ -256,7 +252,7 @@ sub save_json_file ($result, $fn) {
 }
 
 sub scale_timeout ($timeout) {
-    return $timeout * ($vars{TIMEOUT_SCALE} // 1);
+    return $timeout * ($common::vars{TIMEOUT_SCALE} // 1);
 }
 
 =head2 random_string
