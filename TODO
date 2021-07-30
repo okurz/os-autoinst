@@ -1,0 +1,3 @@
+* check for more diag and replace by fctwarn or fctinfo as we now have color
+* do not use test api functions in backend modules
+* use post-conditions
