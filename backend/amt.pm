@@ -12,7 +12,6 @@ use Time::HiRes qw(sleep gettimeofday);
 use Data::Dumper;
 require Carp;
 use bmwqemu ();
-use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
 
@@ -29,8 +28,6 @@ my $vnc_password = 'we4kP@ss';
 
 sub new {
     my $class = shift;
-    get_required_var('AMT_HOSTNAME');
-    get_required_var('AMT_PASSWORD');
 
     # use env to avoid leaking password to logs
     $ENV{'WSMAN_USER'} = 'admin';

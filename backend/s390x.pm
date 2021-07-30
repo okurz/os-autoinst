@@ -12,12 +12,12 @@ use base 'backend::baseclass';
 use English;
 require IPC::System::Simple;
 use Carp qw(confess cluck carp croak);
-use testapi 'get_required_var';
+use bmwqemu ();
 
 sub new {
     my $class = shift;
-    my $self = $class->SUPER::new;
-    get_required_var('WORKER_HOSTNAME');
+    my $self  = $class->SUPER::new;
+    $bmwqemu::vars{WORKER_HOSTNAME} or die "missing 'WORKER_HOSTNAME'";
     return $self;
 }
 
