@@ -4,6 +4,7 @@
 
 package testapi;
 
+use strictures;
 use base Exporter;
 use Carp;
 use Exporter;
