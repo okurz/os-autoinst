@@ -7,6 +7,7 @@ use Mojo::Base -strict, -signatures;
 
 use base 'consoles::console';
 
+use bmwqemu ();
 use backend::svirt qw(SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
 use consoles::ssh_screen;
 
