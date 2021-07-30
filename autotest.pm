@@ -558,6 +558,9 @@ sub runalltests () {
             make_snapshot($t->{fullname});
         }
 
+        # TODO if the flag "retries" is set and bigger than 0
+        # then put the same test module back into schedule and
+        # try again
         my $error;
         try { $t->runtest }
         catch ($e) { $error = $e }
