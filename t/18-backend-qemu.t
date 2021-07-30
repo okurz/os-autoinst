@@ -192,4 +192,9 @@ subtest qemu_tpm_option => sub {
     like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm6 --ctrl type=unixio,path=.*mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created';
 };
 
+subtest snapshots => sub {
+    $backend_mock->mock(handle_qmp_command => undef);
+    ok($backend->save_snapshot(), 'snapshot can be recorded');
+};
+
 done_testing();
