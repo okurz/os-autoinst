@@ -238,7 +238,7 @@ sub start_serial_grab ($self, $name) {
     log::diag('svirt: grabbing serial console');
     $ssh->blocking(1);
     if (!$chan->exec($cmd)) {
-        bmwqemu::fctwarn('svirt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+        log::fctwarn('svirt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
     $ssh->blocking(0);
 }
@@ -306,7 +306,7 @@ sub delete_log ($self) {
 # Intent to use CORE::GLOBAL::die, that does not have $self.
 sub die ($self, $err = '') {
     if ($self->{need_delete_log}) {
-        bmwqemu::fctwarn("error, cleanup logs before die");
+        log::fctwarn("error, cleanup logs before die");
         $self->delete_log();
     }
     die $err;

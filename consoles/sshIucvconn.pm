@@ -22,7 +22,7 @@ sub connect_remote ($self, $args) {
     $chan->blocking(0);
     $chan->pty(1);
     if (!$chan->exec('smart_agetty hvc0')) {
-        bmwqemu::fctwarn('Unable to execute "smart_agetty hvc0" at this point: ' . ($ttyconn->error // 'unknown SSH error'));
+        log::fctwarn('Unable to execute "smart_agetty hvc0" at this point: ' . ($ttyconn->error // 'unknown SSH error'));
     }
 
     # Save objects to prevent unexpected closings
@@ -35,7 +35,7 @@ sub connect_remote ($self, $args) {
     log::diag('ssh iucvconn: grabbing serial console');
     $ssh->blocking(1);
     if (!$serialchan->exec("iucvconn $zvmguest lnxhvc0")) {
-        bmwqemu::fctwarn('ssh iucvconn: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+        log::fctwarn('ssh iucvconn: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
     $ssh->blocking(0);
 }

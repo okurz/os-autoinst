@@ -157,7 +157,7 @@ sub can_handle ($self, $args) {
     my @models = ($vars->{HDDMODEL}, map { $vars->{"HDDMODEL_$_"} } (1 .. $vars->{NUMDISKS}));
     my $nvme = first { ($_ // '') eq 'nvme' } @models;
     return {ret => 1} unless $nvme;
-    bmwqemu::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
+    log::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
       unless $args->{no_warn};
     return undef;
 }
@@ -308,7 +308,7 @@ sub save_memory_dump ($self, $args) {
             runcmd('xz', '--no-warn', '-T', $compress_threads, "-v$compress_level", "ulogs/$filename");
         }
         else {
-            bmwqemu::fctwarn('xz not found; falling back to bzip2');
+            log::fctwarn('xz not found; falling back to bzip2');
             $compress_method = 'bzip2';
         }
     }
@@ -487,13 +487,13 @@ sub virtio_console_names () {
 sub virtio_console_fifo_names () { map { $_ . '.in', $_ . '.out' } virtio_console_names }
 
 sub console_fifo ($name) {
-    return bmwqemu::fctwarn("Fifo pipe '$name' already exists!") if -e $name;
-    mkfifo($name, 0666) or bmwqemu::fctwarn("Failed to create pipe $name: $!");
+    return log::fctwarn("Fifo pipe '$name' already exists!") if -e $name;
+    mkfifo($name, 0666) or log::fctwarn("Failed to create pipe $name: $!");
 }
 
 sub create_virtio_console_fifo() { console_fifo($_) for virtio_console_fifo_names }
 
-sub delete_virtio_console_fifo() { unlink $_ or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
+sub delete_virtio_console_fifo() { unlink $_ or log::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
 
 sub qemu_params_ofw ($self) {
     my $vars = \%bmwqemu::vars;

@@ -156,7 +156,7 @@ sub login {
             # we might be too fast trying to connect to the VNC host (e.g.
             # qemu) so ignore the first occurrences of a failed
             # connection attempt.
-            bmwqemu::fctwarn($error_message) if $err_cnt > $connect_failure_limit;
+            log::fctwarn($error_message) if $err_cnt > $connect_failure_limit;
             sleep 1;
             next;
         }
@@ -775,7 +775,7 @@ sub update_framebuffer {    # upstream VNC.pm:  "capture"
     }
     catch {
         if (blessed $_ && $_->isa('OpenQA::Exception::VNCProtocolError')) {
-            bmwqemu::fctwarn "Error in VNC protocol - relogin: " . $_->error;
+            log::fctwarn "Error in VNC protocol - relogin: " . $_->error;
             $self->login;
         }
         else {
