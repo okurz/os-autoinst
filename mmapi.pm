@@ -110,7 +110,7 @@ sub handle_api_error {
     my $code = $err->{code};
     return 0 if $code && ($expected_codes // $CODES_EXPECTED_BY_DEFAULT)->{$code};
     $err->{message} .= "; URL was $url" if $url;
-    bmwqemu::diag($code
+    log::diag($code
         ? "$log_ctx: $code response: $err->{message}"
         : "$log_ctx: Connection error: $err->{message}") if $log_ctx;
     return 1;
@@ -201,7 +201,7 @@ sub get_job_autoinst_url {
             return $url;
         }
     }
-    bmwqemu::diag("get_job_autoinst_url: No worker info for job $target_id available.");
+    log::diag("get_job_autoinst_url: No worker info for job $target_id available.");
     return undef;
 }
 
@@ -248,7 +248,7 @@ sub wait_for_children {
             $n++;
         }
 
-        bmwqemu::diag("Waiting for $n jobs to finish");
+        log::diag("Waiting for $n jobs to finish");
         last unless $n;
         sleep $poll_interval;
     }
@@ -270,7 +270,7 @@ sub wait_for_children_to_start {
             $n++;
         }
 
-        bmwqemu::diag("Waiting for $n jobs to start");
+        log::diag("Waiting for $n jobs to start");
         last unless $n;
         sleep $poll_interval;
     }

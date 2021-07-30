@@ -168,7 +168,7 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
             my ($name, $path, $ext) = fileparse($backing_file, ".xz");
             if ($ext =~ qr /.xz/) {
                 die 'unxz was not found in PATH' unless defined which('unxz');
-                bmwqemu::diag("Extracting XZ compressed file");
+                log::diag("Extracting XZ compressed file");
                 runcmd('nice', 'ionice', 'unxz', '-k', '-f', $backing_file);
                 $backing_file = $path . $name;
             }
@@ -300,7 +300,7 @@ sub init_blockdev_images ($self) {
             undef $@;
             eval { runcmd($self->qemu_img_bin, @$qicmd) };
             last unless $@;
-            bmwqemu::diag("init_blockdev_images: '@$qicmd' failed: $@, try $_ out of $tries");
+            log::diag("init_blockdev_images: '@$qicmd' failed: $@, try $_ out of $tries");
         }
         die "init_blockdev_images: '@$qicmd' failed after $tries tries: $@" if $@;
     }
@@ -364,7 +364,7 @@ sub gen_runfile ($self) {
 sub exec_qemu ($self) {
     my @params = $self->gen_cmdline();
     session->enable;
-    bmwqemu::diag('starting: ' . join(' ', @params));
+    log::diag('starting: ' . join(' ', @params));
     session->enable_subreaper;
 
     my $process = $self->_process;
@@ -446,7 +446,7 @@ sub revert_to_snapshot ($self, $name) {
             die "Snapshot $name not found for " . $drive->id unless defined($del_files);
 
             for my $file (@$del_files) {
-                bmwqemu::diag("Unlinking $file");
+                log::diag("Unlinking $file");
                 POSIX::remove($file);
             }
     });

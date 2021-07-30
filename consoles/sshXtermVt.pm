@@ -25,8 +25,16 @@ sub activate ($self) {
     my $serial = $self->{args}->{serial};
 
     # Wait that ssh server on SUT is live on network
+<<<<<<< HEAD
     if (!$self->wait_for_ssh_port($hostname, timeout => ($bmwqemu::vars{SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT} // 120))) {
         bmwqemu::diag("$hostname does not seems to have an active SSH server. Continuing anyway.");
+||||||| parent of 2fcea8e1 (WIP -- replaced all bmwqemu::diag with log::diag)
+    if (!$self->wait_for_ssh_port($hostname, timeout => (get_var('SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT') // 120))) {
+        bmwqemu::diag("$hostname does not seems to have an active SSH server. Continuing anyway.");
+=======
+    if (!$self->wait_for_ssh_port($hostname, timeout => (get_var('SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT') // 120))) {
+        log::diag("$hostname does not seems to have an active SSH server. Continuing anyway.");
+>>>>>>> 2fcea8e1 (WIP -- replaced all bmwqemu::diag with log::diag)
     }
     $self->callxterm($sshcommand, "ssh:$testapi_console");
 
@@ -40,7 +48,7 @@ sub activate ($self) {
         );
 
         # start iucvconn
-        bmwqemu::diag('ssh xterm vt: grabbing serial console');
+        log::diag('ssh xterm vt: grabbing serial console');
         $ssh->blocking(1);
         if (!$serialchan->exec($serial)) {
             bmwqemu::fctwarn('ssh xterm vt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
@@ -53,7 +61,7 @@ sub wait_for_ssh_port ($self, $hostname, %args) {
     $args{timeout} //= 120;
     $args{port} //= 22;
 
-    bmwqemu::diag("Wait for SSH on host $hostname (timeout: $args{timeout})");
+    log::diag("Wait for SSH on host $hostname (timeout: $args{timeout})");
 
     $args{timeout} = 1 unless $args{timeout} > 0;
     my $endtime = time() + $args{timeout};

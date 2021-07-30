@@ -147,7 +147,7 @@ sub _mouse_move ($self, $x, $y) {
     $self->{mouse}->{x} = $x;
     $self->{mouse}->{y} = $y;
 
-    bmwqemu::diag "mouse_move $x, $y";
+    log::diag "mouse_move $x, $y";
     $self->{vnc}->mouse_move_to($x, $y);
     return;
 }
@@ -178,7 +178,7 @@ sub mouse_button ($self, $args) {
     my $button = $args->{button};
     my $bstate = $args->{bstate};
     my $mask = {left => $bstate, right => $bstate << 2, middle => $bstate << 1}->{$button} // 0;
-    bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
+    log::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }

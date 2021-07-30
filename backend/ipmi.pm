@@ -44,7 +44,7 @@ sub ipmitool ($self, $cmd, %args) {
     chomp $stderr;
 
     die join(' ', @cmd) . ": $stderr" unless ($ret);
-    bmwqemu::diag("IPMI: $stdout");
+    log::diag("IPMI: $stdout");
     return $stdout;
 }
 
@@ -120,11 +120,11 @@ sub get_mc_status ($self) {
 sub do_mc_reset ($self) {
     # deactivate sol console before doing mc reset because it breaks sol connection
     if (defined $testapi::distri->{consoles}->{sol}) {
-        bmwqemu::diag("Before doing mc reset, sol console exists, so cleanup it");
+        log::diag("Before doing mc reset, sol console exists, so cleanup it");
         $testapi::distri->{consoles}->{sol}->reset();
-        bmwqemu::diag("sol console reset done");
+        log::diag("sol console reset done");
         $self->deactivate_console({testapi_console => 'sol'});
-        bmwqemu::diag("deactivate console sol done");
+        log::diag("deactivate console sol done");
     }
 
     # during the eval execution of following commands, SIG{__DIE__} will definitely be triggered, let it go
@@ -135,12 +135,12 @@ sub do_mc_reset ($self) {
     for (1 .. $max_tries) {
         eval { $self->ipmitool("mc reset cold"); };
         if (my $E = $@) {
-            bmwqemu::diag("IPMI mc reset failure: $E");
+            log::diag("IPMI mc reset failure: $E");
         }
         else {
-            bmwqemu::diag('IPMI mc reset success, waiting some seconds before trying to connect again');
+            log::diag('IPMI mc reset success, waiting some seconds before trying to connect again');
             sleep $bmwqemu::vars{IPMI_MC_RESET_SLEEP_TIME_S} // 10;
-            bmwqemu::diag('sleep period ends, probing connection with ping');
+            log::diag('sleep period ends, probing connection with ping');
             # check until  mc reset is done and ipmi recovered
             my $count = 0;
             my $timeout = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT} // ONE_MINUTE;
@@ -153,7 +153,7 @@ sub do_mc_reset ($self) {
                     # ping pass, check ipmitool function normally
                     eval { $self->ipmitool('chassis power status', tries => $ipmi_tries); };
                     if (!$@) {
-                        bmwqemu::diag("IPMI: ipmitool is recovered after mc reset");
+                        log::diag("IPMI: ipmitool is recovered after mc reset");
                         return;
                     }
                 }

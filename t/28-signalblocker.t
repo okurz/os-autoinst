@@ -20,7 +20,7 @@ use POSIX ':signal_h';
 use signalblocker;
 
 no warnings 'redefine';
-sub bmwqemu::diag { note $_[0] }
+sub log::diag { note $_[0] }
 
 # make the usage of the signal blocker configurable
 # note: The test will fail if this variable is set. This configuration is used to verify that the

@@ -19,7 +19,7 @@ sub activate ($self) {
 
     if ($self->{serialpid}) {
         $self->{serial_pipe}->writer();
-        bmwqemu::diag "started amtterm $self->{serialpid}";
+        log::diag "started amtterm $self->{serialpid}";
         return;
     }
 
@@ -51,7 +51,7 @@ sub activate ($self) {
                     $amt_console->close;
                     $s->remove($amt_console);
                     my $ret = waitpid($self->{consolepid}, 0);
-                    bmwqemu::diag "SOL failed, reconnecting [$ret]\n";
+                    log::diag "SOL failed, reconnecting [$ret]\n";
                     sleep 1;
                     $self->{consolepid} = open($amt_console, '-|', @cmd);
                     $amt_console->blocking(0);
@@ -77,7 +77,7 @@ sub disable ($self) {
     return unless $self->{serialpid};
     $self->{serial_pipe}->print("GO!\n");
     $self->{serial_pipe}->close;
-    bmwqemu::diag "waiting for termination of amtterm $self->{serialpid}";
+    log::diag "waiting for termination of amtterm $self->{serialpid}";
     my $ret = waitpid($self->{serialpid}, 0);
     $self->{serialpid} = undef;
     return $ret;

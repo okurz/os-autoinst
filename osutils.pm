@@ -78,7 +78,7 @@ sub quote {
 sub run {
     my @cmd = @_;
 
-    bmwqemu::diag "running `@cmd`";
+    log::diag "running `@cmd`";
     my $p = process(execute => shift @cmd, args => [@cmd]);
     $p->quirkiness(1)->separate_err(0)->start()->wait_stop();
 
@@ -96,9 +96,9 @@ sub run_diag {
     eval {
         local $SIG{__DIE__} = undef;
         ($exit_status, $output) = run(@_);
-        bmwqemu::diag("Command `@_` terminated with $exit_status" . (length($output) ? "\n$output" : ''));
+        log::diag("Command `@_` terminated with $exit_status" . (length($output) ? "\n$output" : ''));
     };
-    bmwqemu::diag("Fatal error in command `@_`: $@") if ($@);
+    log::diag("Fatal error in command `@_`: $@") if ($@);
     return $output;
 }
 
@@ -106,7 +106,7 @@ sub run_diag {
 sub runcmd {
     my (@cmd) = @_;
     my ($e, $out) = run(@cmd);
-    bmwqemu::diag $out if $out && length($out) > 0;
+    log::diag $out if $out && length($out) > 0;
     die "runcmd '" . join(' ', @cmd) . "' failed with exit code $e" . ($out ? ": '$out'" : '') unless $e == 0;
     return $e;
 }
@@ -121,13 +121,13 @@ sub attempt {
     my $attempts = 0;
     my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
     until ($condition->() || $attempts >= $total_attempts) {
-        bmwqemu::diag "Waiting for $attempts attempts";
+        log::diag "Waiting for $attempts attempts";
         $cb->();
         wait_attempt;
         $attempts++;
     }
     $or->() if $or && !$condition->();
-    bmwqemu::diag "Finished after $attempts attempts";
+    log::diag "Finished after $attempts attempts";
 }
 
 1;

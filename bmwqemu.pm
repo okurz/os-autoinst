@@ -7,7 +7,6 @@ package bmwqemu;
 use strictures;
 use autodie ':all';
 use Fcntl ':flock';
-use Time::HiRes qw(sleep);
 use Mojo::File qw(path);
 use Term::ANSIColor;
 use log;
@@ -63,11 +62,11 @@ use constant STATE_FILE => 'base_state.json';
 # Write a JSON representation of the process termination to disk
 sub serialize_state {
     my $state = {@_};
-    bmwqemu::fctwarn($state->{msg}) if delete $state->{error};
-    bmwqemu::diag($state->{msg}) if delete $state->{log};
+    log::fctwarn($state->{msg}) if delete $state->{error};
+    log::diag($state->{msg}) if delete $state->{log};
     return undef if -e STATE_FILE;
     eval { path(STATE_FILE)->spurt(encode_json($state)) };
-    bmwqemu::diag("Unable to serialize fatal error: $@") if $@;
+    log::diag("Unable to serialize fatal error: $@") if $@;
 }
 
 sub load_vars {

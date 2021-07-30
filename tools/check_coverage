@@ -1,12 +1,7 @@
 #!/usr/bin/env perl
 
-<<<<<<< HEAD
 use Mojo::Base -strict, -signatures;
-||||||| parent of 67d44eae... Prevent all warnings and common style issues with "strictures"
-use Mojo::Base -strict;
-=======
 use strictures;
->>>>>>> 67d44eae... Prevent all warnings and common style issues with "strictures"
 use autodie;
 
 

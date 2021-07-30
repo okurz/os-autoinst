@@ -22,7 +22,7 @@ sub calculate_git_hash ($git_repo_dir) {
     chomp(my $git_hash = qx{git rev-parse HEAD ||:});
     $git_hash ||= "UNKNOWN";
     chdir($dir);
-    bmwqemu::diag "git hash in $git_repo_dir: $git_hash";
+    log::diag "git hash in $git_repo_dir: $git_hash";
     return $git_hash;
 }
 
@@ -53,15 +53,15 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $branch_args = '';
     my ($return_code, @out);
     my $handle_output = sub {
-        bmwqemu::diag "@out" if @out;
+        log::diag "@out" if @out;
         die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
     };
     if ($branch) {
-        bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
+        log::fctinfo "Checking out git refspec/branch '$branch'";
         $branch_args = " --branch $branch";
     }
     if (!-e $local_path) {
-        bmwqemu::fctinfo "Cloning git URL '$clone_url' to use as test distribution";
+        log::fctinfo "Cloning git URL '$clone_url' to use as test distribution";
         @out = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
         $return_code = $?;
         if ($branch && grep /warning: Could not find remote branch/, @out) {
@@ -71,7 +71,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
             # References:
             # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
             # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
-            bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
+            log::diag "Fetching more remote objects to ensure availability of '$branch'";
             @out = qx{$clone_cmd $clone_args $clone_url 2>&1};
             $return_code = $?;
             $handle_output->();
@@ -79,7 +79,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
                 $args{clone_depth} *= 2;
                 @out = qx[git -C $local_path fetch --progress --depth=$args{clone_depth} 2>&1];
                 $return_code = $?;
-                bmwqemu::diag "git fetch: @out";
+                log::diag "git fetch: @out";
                 die "Unable to fetch Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
                 die "Could not find '$branch' in complete history in cloned Git repository '$dir'" if grep /remote: Total 0/, @out;
             }
@@ -91,7 +91,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
         }
     }
     else {
-        bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
+        log::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
     return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs->to_string;
 }
@@ -112,7 +112,7 @@ Example:
 sub checkout_git_refspec ($dir, $refspec_variable) {
     return undef unless defined $dir;
     if (my $refspec = $bmwqemu::vars{$refspec_variable}) {
-        bmwqemu::diag "Checking out local git refspec '$refspec' in '$dir'";
+        log::diag "Checking out local git refspec '$refspec' in '$dir'";
         qx{env git -C $dir checkout -q $refspec};
         die "Failed to checkout '$refspec' in '$dir'\n" unless $? == 0;
     }
@@ -156,7 +156,7 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
     }
     for my $i (1 .. $nd) {
         my $name = $bmwqemu::vars{"FORCE_PUBLISH_HDD_$i"} || next;
-        bmwqemu::diag "Requested to force the publication of '$name'";
+        log::diag "Requested to force the publication of '$name'";
         push @toextract, _store_asset($i, $name, 'assets_public');
     }
     for my $asset (@toextract) {

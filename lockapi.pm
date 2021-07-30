@@ -66,7 +66,7 @@ sub _log {
 
 sub _api_call_with_logging_and_error_handling {
     my ($log_ctx, $method, $action, $params, $expected_codes) = (@_);
-    bmwqemu::diag($log_ctx);
+    log::diag($log_ctx);
     my $tx = api_call_2($method, $action, $params, $expected_codes);
     return 0 if mmapi::handle_api_error($tx, $log_ctx, $expected_codes);
     return $tx->res->code == 200 ? 1 : 0;
@@ -75,11 +75,11 @@ sub _api_call_with_logging_and_error_handling {
 sub mutex_lock {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing lock name') unless $name;
-    bmwqemu::diag("mutex lock '$name'");
+    log::diag("mutex lock '$name'");
     while (1) {
         my $res = _lock_action($name, $where);
         return 1 if $res;
-        bmwqemu::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
+        log::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
         sleep POLL_INTERVAL;    # uncoverable statement
     }
 }
@@ -87,7 +87,7 @@ sub mutex_lock {
 sub mutex_try_lock {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing lock name') unless $name;
-    bmwqemu::diag("mutex try lock '$name'");
+    log::diag("mutex try lock '$name'");
     return _lock_action($name, $where);
 }
 
@@ -136,7 +136,7 @@ sub _wait_action {
 sub barrier_try_wait {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing barrier name') unless $name;
-    bmwqemu::diag("barrier try wait '$name'");
+    log::diag("barrier try wait '$name'");
     return _wait_action($name, $where);
 }
 
@@ -146,7 +146,7 @@ sub barrier_wait {
     $check_dead_job = looks_like_number($check_dead_job) && $check_dead_job ? 1 : 0;
 
     bmwqemu::mydie('missing barrier name') unless $name;
-    bmwqemu::diag("barrier wait '$name'");
+    log::diag("barrier wait '$name'");
 
     _log $name, where => $where;
     my $start = time;
@@ -157,7 +157,7 @@ sub barrier_wait {
             return 1;
         }
 
-        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
+        log::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
         sleep POLL_INTERVAL;    # uncoverable statement
     }
 }

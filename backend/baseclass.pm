@@ -84,7 +84,7 @@ sub die_handler ($msg) {
 }
 
 sub backend_signalhandler ($sig) {
-    bmwqemu::diag("backend got $sig");
+    log::diag("backend got $sig");
     $backend->stop_vm;
 }
 
@@ -105,9 +105,9 @@ sub run ($self, $cmdpipe, $rsppipe) {
     $io->autoflush(1);
     $self->{rsppipe} = $io;
 
-    bmwqemu::diag "$$: cmdpipe " . fileno($self->{cmdpipe}) . ', rsppipe ' . fileno($self->{rsppipe});
+    log::diag "$$: cmdpipe " . fileno($self->{cmdpipe}) . ', rsppipe ' . fileno($self->{rsppipe});
 
-    bmwqemu::diag "started mgmt loop with pid $$";
+    log::diag "started mgmt loop with pid $$";
 
     my $select_read = $self->{select_read} = OpenQA::NamedIOSelect->new;
     my $select_write = $self->{select_write} = OpenQA::NamedIOSelect->new;
@@ -128,7 +128,7 @@ sub run ($self, $cmdpipe, $rsppipe) {
 
     $self->run_capture_loop;
 
-    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
+    log::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
 sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers, $fh) {
@@ -306,7 +306,7 @@ sub _start_external_video_encoder_if_configured ($self) {
     my $output_file_path = Cwd::getcwd . "/video.$output_file_name";
     $cmd .= " '$output_file_path'" unless $cmd =~ s/%OUTPUT_FILE_NAME%/$output_file_path/;
 
-    bmwqemu::diag "Launching external video encoder: $cmd";
+    log::diag "Launching external video encoder: $cmd";
     $self->_invoke_video_encoder(external_video_encoder_cmd_pipe => 'external video encoder', $cmd);
     return 1;
 }
@@ -333,7 +333,7 @@ sub _stop_video_encoder ($self) {
     return undef unless defined $video_encoders && keys %$video_encoders;
 
     # pass remaining video frames to the video encoder
-    bmwqemu::diag 'Passing remaining frames to the video encoder';
+    log::diag 'Passing remaining frames to the video encoder';
     my $timeout = 30;
     my $video_data_for_internal_encoder = $self->{video_frame_data};
     my $video_data_for_external_encoder = $self->{external_video_encoder_image_data};
@@ -357,7 +357,7 @@ sub _stop_video_encoder ($self) {
         }
     }
     catch {
-        bmwqemu::diag "Unable to pass remaining frames to video encoder: $_";
+        log::diag "Unable to pass remaining frames to video encoder: $_";
     };
 
     # give the video encoder processes time to finalize the video
@@ -365,19 +365,19 @@ sub _stop_video_encoder ($self) {
     #       already sent by the worker or shell and ffmpeg will not continue finalizing the video after receiving a 2nd exit signal.
     no autodie qw(close waitpid);
     close $video_encoders->{$_}->{pipe} for keys %$video_encoders;
-    bmwqemu::diag 'Waiting for video encoder to finalize the video';
+    log::diag 'Waiting for video encoder to finalize the video';
     for (my $interval = 0.25; $timeout > 0; sleep($interval), $timeout -= $interval) {
         for my $pid (keys %$video_encoders) {
             my $ret = waitpid($pid, WNOHANG);
             if ($ret == $pid || $ret == -1) {
-                bmwqemu::diag "The $video_encoders->{$pid}->{name} (pid $pid) terminated";
+                log::diag "The $video_encoders->{$pid}->{name} (pid $pid) terminated";
                 delete $video_encoders->{$pid};
             }
         }
         last unless keys %$video_encoders;
     }
     return undef unless keys %$video_encoders;
-    bmwqemu::diag "Unable to terminate $video_encoders->{$_}->{name}, sending SIGKILL" for keys %$video_encoders;
+    log::diag "Unable to terminate $video_encoders->{$_}->{name}, sending SIGKILL" for keys %$video_encoders;
     kill KILL => (keys %$video_encoders);
 }
 
@@ -517,8 +517,8 @@ sub enqueue_screenshot ($self, $image) {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$bmwqemu::vars{NO_DEBUG_IO}) {
-        bmwqemu::fctwarn sprintf("enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
-        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
+        log::fctwarn sprintf("enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
+        log::diag "DEBUG_IO: \n" . $watch->summary();
     }
 
     return;
@@ -535,7 +535,7 @@ sub close_pipes ($self) {
     # disarm SIGTERM handler to avoid re-entrant stop_vm call, stopping anyway
     $SIG{TERM} = 'IGNORE';
 
-    bmwqemu::diag "sending magic and exit";
+    log::diag "sending magic and exit";
     myjsonrpc::send_json($self->{rsppipe}, {QUIT => 1});
     close($self->{rsppipe}) || die "close $!\n";
     Devel::Cover::report() if Devel::Cover->can('report');
@@ -968,7 +968,7 @@ sub check_asserted_screen ($self, $args) {
     }
     else {
         if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
-            bmwqemu::diag('no change: ' . time_remaining_str($n));
+            log::diag('no change: ' . time_remaining_str($n));
             return;
         }
     }
@@ -991,11 +991,11 @@ sub check_asserted_screen ($self, $args) {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        bmwqemu::fctwarn sprintf(
+        log::fctwarn sprintf(
             "check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific",
             $watch->as_data()->{total_time},
             scalar(@registered_needles));
-        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary() if (!$bmwqemu::vars{NO_DEBUG_IO} && $watch->{debug});
+        log::diag "DEBUG_IO: \n" . $watch->summary() if (!$bmwqemu::vars{NO_DEBUG_IO} && $watch->{debug});
     }
 
     my $no_match_diag = 'no match: ' . time_remaining_str($n);
@@ -1006,7 +1006,7 @@ sub check_asserted_screen ($self, $args) {
             1 - sqrt($best_candidate->{error})
         );
     }
-    bmwqemu::diag($no_match_diag);
+    log::diag($no_match_diag);
 
     if ($n < 0) {
         # make sure we recheck later
@@ -1074,12 +1074,12 @@ sub _reduce_to_biggest_changes ($imglist, $limit) {
 }
 
 sub freeze_vm ($self, @) {
-    bmwqemu::diag "ignored freeze_vm";
+    log::diag "ignored freeze_vm";
     return;
 }
 
 sub cont_vm ($self, @) {
-    bmwqemu::diag "ignored cont_vm";
+    log::diag "ignored cont_vm";
     return;
 }
 
@@ -1135,10 +1135,10 @@ sub new_ssh_connection ($self, %args) {
             # Check if we still can create channels on that connection
             if (my $tmp_chan = $con->channel()) {
                 $tmp_chan->close();
-                bmwqemu::diag "Use existing SSH connection (key:$connection_key)";
+                log::diag "Use existing SSH connection (key:$connection_key)";
                 return $con;
             } else {
-                bmwqemu::diag "Close broken SSH connection (key:$connection_key)";
+                log::diag "Close broken SSH connection (key:$connection_key)";
                 $con->disconnect();
                 delete $self->{ssh_connections}->{$connection_key};
             }
@@ -1162,11 +1162,11 @@ sub new_ssh_connection ($self, %args) {
                 # this relies on agent to be set up correctly
                 $ssh->auth_agent($args{username});
             }
-            bmwqemu::diag "SSH connection to $con_pretty established" if $ssh->auth_ok;
+            log::diag "SSH connection to $con_pretty established" if $ssh->auth_ok;
             last;
         }
         else {
-            bmwqemu::diag "Could not connect to $con_pretty, Retrying after some seconds...";
+            log::diag "Could not connect to $con_pretty, Retrying after some seconds...";
             sleep($bmwqemu::vars{SSH_CONNECT_RETRY_INTERVAL} // 10);
             $counter--;
             next;
@@ -1251,10 +1251,10 @@ sub run_ssh_cmd ($self, $cmd, %args) {
         }
     }
 
-    bmwqemu::diag("[run_ssh_cmd($cmd)] stdout:$/$stdout") if length($stdout);
-    bmwqemu::diag("[run_ssh_cmd($cmd)] stderr:$/$stderr") if length($stderr);
+    log::diag("[run_ssh_cmd($cmd)] stdout:$/$stdout") if length($stdout);
+    log::diag("[run_ssh_cmd($cmd)] stderr:$/$stderr") if length($stderr);
     my $ret = $chan->exit_status();
-    bmwqemu::diag("[run_ssh_cmd($cmd)] exit-code: $ret");
+    log::diag("[run_ssh_cmd($cmd)] exit-code: $ret");
     $ssh->disconnect() unless ($args{keep_open});
 
     return $args{wantarray} ? ($ret, $stdout, $stderr) : $ret;
@@ -1273,7 +1273,7 @@ sub run_ssh ($self, $cmd, %args) {
 sub close_ssh_connections ($self) {
     my $cons = $self->{ssh_connections} // {};
     for my $key (keys(%{$cons})) {
-        bmwqemu::diag("SSH disconnect $key");
+        log::diag("SSH disconnect $key");
         $cons->{$key}->disconnect();
         delete($cons->{$key});
     }
@@ -1282,7 +1282,7 @@ sub close_ssh_connections ($self) {
 sub stop_ssh_serial ($self) {
     my $ssh = $self->{serial};
     return undef unless $ssh;
-    bmwqemu::diag('Closing SSH serial connection with ' . $ssh->hostname);
+    log::diag('Closing SSH serial connection with ' . $ssh->hostname);
     $self->{select_read}->remove($ssh->sock);
     $ssh->disconnect;
     $self->{serial_chan} = undef;
@@ -1298,11 +1298,11 @@ sub hide_password ($self, %args) {
 sub _stop_children_processes ($self) {
     my $ret;
     for my $pid (@{$self->{children}}) {
-        bmwqemu::diag("terminating child $pid");
+        log::diag("terminating child $pid");
         kill('TERM', $pid);
         for my $i (1 .. 5) {
             $ret = waitpid($pid, WNOHANG);
-            bmwqemu::diag "waitpid for $pid returned $ret";
+            log::diag "waitpid for $pid returned $ret";
             last if ($ret == $pid);
             sleep 1;
         }

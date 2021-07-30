@@ -61,7 +61,7 @@ sub do_stop_vm ($self, @) {
 
     unless ($bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}) {
         my $vmname = $self->console('svirt')->name;
-        bmwqemu::diag "Destroying $vmname virtual machine";
+        log::diag "Destroying $vmname virtual machine";
         if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
             my $ps = 'powershell -Command';
             $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
@@ -92,7 +92,7 @@ sub scp_get ($self, $src, $dest) {
     my $ssh = $self->new_ssh_connection(%credentials);
 
     open(my $fh, '>', $dest) or die "Could not open file '$dest' $!";
-    bmwqemu::diag("SCP file: '$src' => '$dest'");
+    log::diag("SCP file: '$src' => '$dest'");
     my $output = IO::Scalar->new;
     $ssh->scp_get($src, $output) or die "SCP failed";
     print $fh $output;
@@ -136,7 +136,7 @@ sub save_snapshot ($self, $args) {
         $self->run_ssh_cmd("virsh $libvirt_connector snapshot-delete $vmname $snapname");
         $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
     }
-    bmwqemu::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
+    log::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
     $self->die unless ($rsp == 0);
     return;
 }
@@ -167,7 +167,7 @@ sub load_snapshot ($self, $args) {
         $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
         $post_load_snapshot_command = 'vmware_fixup' if ($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'vmware';
     }
-    bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
+    log::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
     $self->die if $rsp;
     return $post_load_snapshot_command;
 }
@@ -235,7 +235,7 @@ sub start_serial_grab ($self, $name) {
         $cmd = 'virsh console ' . $name;
     }
 
-    bmwqemu::diag('svirt: grabbing serial console');
+    log::diag('svirt: grabbing serial console');
     $ssh->blocking(1);
     if (!$chan->exec($cmd)) {
         bmwqemu::fctwarn('svirt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
@@ -282,7 +282,7 @@ sub open_serial_console_via_ssh ($self, $name, %args) {
     }
 
     $cmd_full = "script -f $log -c '$cmd; echo \"$marker \$?\"'";
-    bmwqemu::diag("Starting SSH connection to connect to libvirt domain '$name' (cmd: '$cmd'), full cmd: '$cmd_full'");
+    log::diag("Starting SSH connection to connect to libvirt domain '$name' (cmd: '$cmd'), full cmd: '$cmd_full'");
 
     ($ssh, $chan) = $self->run_ssh($cmd_full, blocking => 0);
     usleep(500) while ($self->run_ssh_cmd("test -e $log") != 0 && $max_tries-- > 0);
