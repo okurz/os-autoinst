@@ -141,7 +141,7 @@ sub unregister ($self, $reason = undef) {
         @{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
         delete $tags{$g} unless (@{$tags{$g}});
     }
-    $self->{unregistered} //= $reason || 'unknown reason';
+    $self->{unregistered} //= $reason;
 }
 
 sub register ($self) {

@@ -4,6 +4,8 @@
 package myjsonrpc;
 
 use Mojo::Base -strict, -signatures;
+# there are some circular includes that should be avoided
+no warnings 'redefine';
 use Carp qw(cluck confess);
 use IO::Select;
 use Errno;
