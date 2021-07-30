@@ -148,7 +148,7 @@ sub open_pipe ($self) {
                 $newsize /= 2;
             }
             $new //= $old;
-            bmwqemu::fctinfo("Set PIPE_SZ from $old to $new");
+            log::fctinfo("Set PIPE_SZ from $old to $new");
         }
     }
 

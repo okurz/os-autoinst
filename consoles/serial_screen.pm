@@ -238,7 +238,7 @@ sub read_until ($self, $pattern, $timeout, %nargs) {
     }
 
     my $elapsed = elapsed($sttime);
-    bmwqemu::fctinfo("Matched output from SUT in $loops loops & $elapsed seconds: $match");
+    log::fctinfo("Matched output from SUT in $loops loops & $elapsed seconds: $match");
 
     $overflow ||= '';
     return $overflow . $prematch if $nargs{exclude_match};
@@ -271,7 +271,7 @@ sub peak ($self, %nargs) {
         next LOOP if $read > 0 && $total_read < $buflen;
     }
 
-    bmwqemu::fctinfo('Peaked ' . ($total_read + length($self->{carry_buffer})) . ' bytes');
+    log::fctinfo('Peaked ' . ($total_read + length($self->{carry_buffer})) . ' bytes');
     return $self->{carry_buffer};
 }
 

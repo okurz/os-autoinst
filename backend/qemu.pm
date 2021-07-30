@@ -469,7 +469,7 @@ sub do_extract_assets ($self, $args) {
     my $pattern = $args->{pflash_vars} ? qr/^pflash-vars$/ : qr/^hd$hdd_num$/;
     $self->{proc}->load_state() unless $self->{proc}->has_state();
     mkpath($img_dir);
-    bmwqemu::fctinfo("Extracting $pattern");
+    log::fctinfo("Extracting $pattern");
     my $qemu_compress_qcow = $bmwqemu::vars{QEMU_COMPRESS_QCOW2} // 1;
     my $res = $self->{proc}->export_blockdev_images($pattern, $img_dir, $name, $qemu_compress_qcow);
     die "Expected one drive to be exported, not $res" if $res != 1;
@@ -591,7 +591,7 @@ sub start_qemu ($self) {
         die "No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or BIOS or UEFI_BIOS or install an appropriate package" unless $vars->{UEFI_PFLASH_CODE};
     }
     if ($vars->{UEFI_PFLASH} || $vars->{BIOS}) {
-        bmwqemu::fctinfo('UEFI_PFLASH and BIOS are deprecated. It is recommended to use UEFI_PFLASH_CODE and UEFI_PFLASH_VARS instead. These variables can be auto-discovered, try to just remove UEFI_PFLASH.');
+        log::fctinfo('UEFI_PFLASH and BIOS are deprecated. It is recommended to use UEFI_PFLASH_CODE and UEFI_PFLASH_VARS instead. These variables can be auto-discovered, try to just remove UEFI_PFLASH.');
     }
 
     foreach my $attribute (qw(BIOS KERNEL INITRD)) {
@@ -907,7 +907,7 @@ sub start_qemu ($self) {
 
     create_virtio_console_fifo();
     my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
-    return bmwqemu::fctinfo('Not connecting to QEMU as requested by QEMU_ONLY_EXEC') if $vars->{QEMU_ONLY_EXEC};
+    return log::fctinfo('Not connecting to QEMU as requested by QEMU_ONLY_EXEC') if $vars->{QEMU_ONLY_EXEC};
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
@@ -976,7 +976,7 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
 
     my $line = Mojo::JSON::to_json($cmd) . "\n";
     if ($bmwqemu::vars{QEMU_ONLY_EXEC}) {
-        bmwqemu::fctinfo("Skipping the following qmp_command because QEMU_ONLY_EXEC is enabled:\n$line");
+        log::fctinfo("Skipping the following qmp_command because QEMU_ONLY_EXEC is enabled:\n$line");
         return undef;
     }
     my $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line);
