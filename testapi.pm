@@ -6,7 +6,7 @@ package testapi;
 
 use Carp;
 use Exporter;
-use Mojo::Base 'Exporter';
+use Mojo::Base 'Exporter', -signatures;
 use File::Basename qw(basename dirname);
 use File::Path 'make_path';
 use Time::HiRes qw(sleep gettimeofday tv_interval);
