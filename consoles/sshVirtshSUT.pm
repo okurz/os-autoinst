@@ -4,6 +4,7 @@
 package consoles::sshVirtshSUT;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 use base 'consoles::console';
 

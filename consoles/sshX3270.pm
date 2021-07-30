@@ -5,6 +5,7 @@
 package consoles::sshX3270;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 use base 'consoles::localXvnc';
 

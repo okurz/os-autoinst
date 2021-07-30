@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use strictures;
 use Test::Most;
 
 use Mojo::Base -strict, -signatures;
@@ -9,7 +10,6 @@ use OpenQA::Test::TimeLimit '5';
 use File::Touch;
 use File::Path qw(make_path remove_tree);
 use Test::MockModule;
-use Test::Warnings ':report_warnings';
 use Test::Output 'stderr_like';
 use Mojo::File qw(path tempdir);
 use OpenQA::Isotovideo::NeedleDownloader;

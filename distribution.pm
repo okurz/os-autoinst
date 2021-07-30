@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package distribution;
-use Mojo::Base -strict;
+use strictures;
 
 use testapi ();
 use Carp 'croak';

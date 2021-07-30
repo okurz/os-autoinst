@@ -5,6 +5,7 @@
 package consoles::network_console;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 use base 'consoles::console';
 

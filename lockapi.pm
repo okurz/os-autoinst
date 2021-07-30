@@ -4,7 +4,7 @@
 ## synchronization API
 package lockapi;
 
-use Mojo::Base -strict;
+use strictures;
 use Scalar::Util 'looks_like_number';
 use Time::Seconds;
 use base 'Exporter';

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Mojo::Base -strict, -signatures;
+use strictures;
+
 use base 'basetest';
 
 use testapi;

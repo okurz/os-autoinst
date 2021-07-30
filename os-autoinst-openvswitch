@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 package OVS;
 
-use Mojo::Base -strict;
+use strictures;
 use autodie ':all';
 
 use base 'Net::DBus::Object';
@@ -223,7 +223,7 @@ sub show {
 
 ################################################################################
 package main;
-use Mojo::Base -strict;
+use strictures;
 
 use Net::DBus;
 use Net::DBus::Reactor;

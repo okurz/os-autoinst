@@ -4,8 +4,11 @@
 
 package consoles::sshVirtsh;
 
-use Mojo::Base 'consoles::sshXtermVt', -signatures;
+use strictures;
 use autodie ':all';
+
+use base 'consoles::sshXtermVt';
+
 require IPC::System::Simple;
 use XML::LibXML;
 use File::Temp 'tempfile';
@@ -15,12 +18,13 @@ use Mojo::JSON qw(decode_json);
 
 use backend::svirt;
 
-has instance => (is => "rw", isa => "Num");
-has name => (is => "rw", isa => "Str");
+has instance   => (is => "rw", isa => "Num");
+has name       => (is => "rw", isa => "Str");
 has vmm_family => (is => "rw", isa => "Str");
-has vmm_type => (is => "rw", isa => "Str");
+has vmm_type   => (is => "rw", isa => "Str");
 
-sub new ($class, $testapi_console = undef, $args = {}) {
+sub new {
+    my ($class, $testapi_console, $args) = @_;
     my $self = $class->SUPER::new($testapi_console, $args);
 
     $self->instance($bmwqemu::vars{VIRSH_INSTANCE} // 1);
@@ -32,7 +36,8 @@ sub new ($class, $testapi_console = undef, $args = {}) {
     return $self;
 }
 
-sub activate ($self) {
+sub activate {
+    my ($self) = @_;
     my $args = $self->{args};
 
     # initialize SSH console(s)
@@ -46,7 +51,9 @@ sub activate ($self) {
 
 # initializes the SSH credentials, $domain is used to distinguish between the
 # regular SSH and the one to the VMware server
-sub _init_ssh ($self, $args) {
+sub _init_ssh {
+    my ($self, $args) = @_;
+
     $self->{ssh_credentials} = {
         default => {
             hostname => $args->{hostname} || die('we need a hostname to ssh to'),
@@ -64,7 +71,8 @@ sub _init_ssh ($self, $args) {
     }
 }
 
-sub get_ssh_credentials ($self, $domain = undef) {
+sub get_ssh_credentials {
+    my ($self, $domain) = @_;
     $domain //= 'default';
     die("Unknown ssh credentials domain $domain") unless (exists($self->{ssh_credentials}->{$domain}));
     return %{$self->{ssh_credentials}->{$domain}};
@@ -72,10 +80,14 @@ sub get_ssh_credentials ($self, $domain = undef) {
 
 # creates an XML document to configure the libvirt domain
 # (see https://libvirt.org/formatdomain.html for the specification of that config file)
-sub _init_xml ($self, $args = {}) {
+sub _init_xml {
+    my ($self, $args) = @_;
+
+    $args ||= {};
+
     my $instance = $self->instance;
-    my $doc = $self->{domainxml} = XML::LibXML::Document->new;
-    my $root = $doc->createElement('domain');
+    my $doc      = $self->{domainxml} = XML::LibXML::Document->new;
+    my $root     = $doc->createElement('domain');
     $root->setAttribute(type => $self->vmm_family);
     $doc->setDocumentElement($root);
 
@@ -163,13 +175,16 @@ sub _init_xml ($self, $args = {}) {
 #    change_domain_element(funny => guy => undef);
 # - set attributes:
 #    change_domain_element(funny => guy => { hello => 'world' });
-sub change_domain_element ($self, @args) {
-    my $doc = $self->{domainxml};
+sub change_domain_element {
+    # we don't know the number of arguments
+    my $self = shift @_;
+
+    my $doc  = $self->{domainxml};
     my $elem = $doc->getElementsByTagName('domain')->[0];
 
-    while (@args > 1) {
-        my $parent = $elem;
-        my $tag_name = shift @args;
+    while (@_ > 1) {
+        my $parent   = $elem;
+        my $tag_name = shift @_;
         $elem = $parent->getElementsByTagName($tag_name)->[0];
         # create it if not existent
         if (!$elem) {
@@ -177,7 +192,7 @@ sub change_domain_element ($self, @args) {
             $parent->appendChild($elem);
         }
     }
-    my $tag = $args[0];
+    my $tag = $_[0];
     if (!$tag) {
         # for undef delete the node
         $elem->unbindNode();
@@ -198,8 +213,10 @@ sub change_domain_element ($self, @args) {
 }
 
 # adds the serial console used for the serial log
-sub add_pty ($self, $args) {
-    my $doc = $self->{domainxml};
+sub add_pty {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
     my $console = $doc->createElement($args->{pty_dev} || backend::svirt::SERIAL_CONSOLE_DEFAULT_DEVICE);
@@ -232,15 +249,17 @@ sub add_pty ($self, $args) {
 
 # this is an equivalent of QEMU's '-vnc' option for tests where we watch
 # the system from boot on (e.g. JeOS)
-sub add_vnc ($self, $args) {
-    my $doc = $self->{domainxml};
+sub add_vnc {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
     my $graphics = $doc->createElement('graphics');
-    $graphics->setAttribute(type => 'vnc');
-    $graphics->setAttribute(port => $args->{port});
-    $graphics->setAttribute(autoport => 'no');
-    $graphics->setAttribute(listen => '0.0.0.0');
+    $graphics->setAttribute(type        => 'vnc');
+    $graphics->setAttribute(port        => $args->{port});
+    $graphics->setAttribute(autoport    => 'no');
+    $graphics->setAttribute(listen      => '0.0.0.0');
     $graphics->setAttribute(sharePolicy => 'force-shared');
     if (my $vnc_password = $testapi::password) {
         $graphics->setAttribute(passwd => $vnc_password);
@@ -248,37 +267,41 @@ sub add_vnc ($self, $args) {
     $devices->appendChild($graphics);
 
     my $elem = $doc->createElement('listen');
-    $elem->setAttribute(type => 'address');
+    $elem->setAttribute(type    => 'address');
     $elem->setAttribute(address => '0.0.0.0');
     $graphics->appendChild($elem);
 
     return;
 }
 
-sub add_input ($self, $args) {
-    my $doc = $self->{domainxml};
+sub add_input {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
     my $input = $doc->createElement('input');
     $input->setAttribute(type => $args->{type});
-    $input->setAttribute(bus => $args->{bus});
+    $input->setAttribute(bus  => $args->{bus});
     $devices->appendChild($input);
 
     return;
 }
 
 # network stuff
-sub add_interface ($self, $args) {
-    my $doc = $self->{domainxml};
+sub add_interface {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
-    my $type = delete $args->{type};
+    my $type      = delete $args->{type};
     my $interface = $doc->createElement('interface');
     $interface->setAttribute(type => $type);
     $devices->appendChild($interface);
 
     for my $key (keys %$args) {
-        my $elem = $doc->createElement($key);
+        my $elem  = $doc->createElement($key);
         my $value = $args->{$key};
         for my $attr (keys %$value) {
             $elem->setAttribute($attr => $value->{$attr});
@@ -354,27 +377,45 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
     die "Can't create thin VMware image" if $retval;
 }
 
-sub _copy_image_else ($self, $file, $file_basename, $basedir) {
-    $self->run_cmd(sprintf("rsync -av '$file' '$basedir/%s'", $file_basename)) && die 'rsync failed';
-    if ($file_basename =~ /(.*)\.xz$/) {
-        $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
-        $file_basename = $1;
-    }
-}
-
-sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom) {
-    # Copy image to VM host
-    die 'No file given' unless $args->{file};
-    my $file_basename = basename($args->{file});
-    my $backingfile = $args->{backingfile};
-    my $vmware_disk_path = $vmware_openqa_datastore . $file_basename;
-    my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
-    if ($cdrom || $backingfile) {
+    my $backingfile             = $args->{backingfile};
+    my $cdrom                   = $args->{cdrom};
+    my $name                    = $self->name;
+    my $file                    = $name . $args->{dev_id} . ($self->vmm_family eq 'vmware' ? '.vmdk' : '.img');
+    my $basedir                 = '/var/lib/libvirt/images/';
+    my $vmware_datastore        = get_var('VMWARE_DATASTORE', '');
+    my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
+    if ($args->{create}) {
+        my $size = $args->{size} || '20G';
         if ($self->vmm_family eq 'vmware') {
-            $self->_copy_image_vmware($name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile);
+            my $vmware_disk_path = $vmware_openqa_datastore . $file;
+            # Power VM off, delete it's disk image, and create it again.
+            # Than wait for some time for the VM to *really* turn off.
+            my $cmd =
+              "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
+              'if [ $vmid ]; then ' .
+              'vim-cmd vmsvc/power.off $vmid;' .
+              'vim-cmd vmsvc/destroy $vmid;' .
+              'fi;' .
+              "vmkfstools -v1 -U $vmware_disk_path;" .
+              "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1";
+            my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
+            die "Can't create VMware image $vmware_disk_path" if $retval;
         }
         else {
-            $self->_copy_image_else($args->{file}, $file_basename, $basedir);
+            $file = $basedir . $file;
+            my $bucket = 5;
+            # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
+            while (1) {
+                my ($ret, $stdout, $stderr) = $self->run_cmd("qemu-img create $file $size -f qcow2", wantarray => 1);
+                if ($stderr =~ /lock/i) {
+                    $bucket--;
+                    die "Too many attempts to format HDD" unless $bucket;
+                    bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
+                    sleep 5;
+                    next;
+                }
+                last unless $ret;
+            }
         }
     }
 
@@ -440,48 +481,93 @@ sub add_disk ($self, $args) {
         $file = $self->_copy_image_to_vm_host($args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom);
     }
 
-    my $doc = $self->{domainxml};
+    my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
     my $disk = $doc->createElement('disk');
-    $disk->setAttribute(type => 'file');
+    $disk->setAttribute(type   => 'file');
     $disk->setAttribute(device => $cdrom ? 'cdrom' : 'disk');
     $devices->appendChild($disk);
 
     # there's no <driver> property on VMware
-    $disk->appendChild(_driver_elem($doc, $cdrom)) if $self->vmm_family ne 'vmware';
-    my ($dev_type, $bus_type) = _handle_disk_type($self->vmm_family, $cdrom, $args->{dev_id});
+    if ($self->vmm_family ne 'vmware') {
+        my $elem = $doc->createElement('driver');
+        $elem->setAttribute(name => 'qemu');
+        if ($cdrom) {
+            $elem->setAttribute(type => 'raw');
+        }
+        else {
+            $elem->setAttribute(type  => 'qcow2');
+            $elem->setAttribute(cache => 'unsafe');
+        }
+        $disk->appendChild($elem);
+    }
+
+    my $dev_type;
+    my $bus_type;
+    my $dev_id = $args->{dev_id};
+    if ($self->vmm_family eq 'xen') {
+        if ($cdrom) {
+            $dev_type = "sd$dev_id";
+            $bus_type = 'scsi';
+        } else {
+            $dev_type = "xvd$dev_id";
+            $bus_type = 'xen';
+        }
+    }
+    elsif ($self->vmm_family eq 'vmware') {
+        $dev_type = "hd$dev_id";
+        $bus_type = 'ide';
+    }
+    elsif ($self->vmm_family eq 'kvm') {
+        if ($cdrom) {
+            $dev_type = "hd$dev_id";
+            $bus_type = 'ide';
+        }
+        else {
+            $dev_type = "vd$dev_id";
+            $bus_type = 'virtio';
+        }
+    }
     my $elem = $doc->createElement('target');
     $elem->setAttribute(dev => $dev_type);
     $elem->setAttribute(bus => $bus_type);
     $disk->appendChild($elem);
 
     $elem = $doc->createElement('source');
-    $file =~ s/\.xz$//;
     $elem->setAttribute(file => $self->vmm_family eq 'vmware' ? "[$vmware_datastore] openQA/$file" : $file);
     $disk->appendChild($elem);
 
-    if (my $bootorder = $args->{bootorder}) { $disk->appendChild(_bootorder_elem($doc, $bootorder)) }
+    if (my $bootorder = $args->{bootorder}) {
+        $elem = $doc->createElement('boot');
+        $elem->setAttribute(order => $bootorder);
+        $disk->appendChild($elem);
+    }
+
     return;
 }
 
-sub virsh () {
+sub virsh {
     my $virsh = 'virsh';
     $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
     return $virsh;
 }
 
-sub suspend ($self) {
+sub suspend {
+    my ($self) = @_;
     $self->run_cmd(virsh() . " suspend " . $self->name) && die "Can't suspend VM ";
     bmwqemu::diag "VM " . $self->name . " suspended";
 }
 
-sub resume ($self) {
+sub resume {
+    my ($self) = @_;
     $self->run_cmd(virsh() . " resume " . $self->name) && die "Can't resume VM ";
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
 sub get_remote_vmm ($self) { $bmwqemu::vars{VMWARE_REMOTE_VMM} // '' }
+
+sub define_and_start ($self, $args) {
 
 sub define_and_start ($self) {
     my $remote_vmm = "";
@@ -505,8 +591,8 @@ __END"
         $bmwqemu::vars{VMWARE_REMOTE_VMM} = $remote_vmm;
     }
 
-    my $instance = $self->instance;
-    my $xmldata = $self->{domainxml}->toString(2);
+    my $instance    = $self->instance;
+    my $xmldata     = $self->{domainxml}->toString(2);
     my $xmlfilename = "/var/lib/libvirt/images/" . $self->name . ".xml";
     my $ret;
     bmwqemu::diag("Creating libvirt configuration file $xmlfilename:\n$xmldata");
@@ -539,9 +625,7 @@ __END"
 }
 
 sub attach_to_running ($self, $args = undef) {
-    $args = {name => $args} unless ref $args;
-
-    my $name = $args->{name};
+    my $name = ref($args) ? $args->{name} : $args;
     $self->name($name) if $name;
     $self->backend->start_serial_grab($self->name);
 
@@ -553,7 +637,6 @@ sub attach_to_running ($self, $args = undef) {
 sub start_serial_grab ($self) { $self->backend->start_serial_grab($self->name) }
 
 sub stop_serial_grab ($self, @) { $self->backend->stop_serial_grab($self->name) }
-
 
 =head2 run_cmd
 
@@ -573,7 +656,8 @@ B<vmware> and defined via C<VMWARE_HOST>, C<VMWARE_PASSWORD> and 'root' as
 username.
 For further arguments see C<baseclass:run_ssh_cmd()>.
 =cut
-sub run_cmd ($self, $cmd, %args) {
+sub run_cmd {
+    my ($self, $cmd, %args) = @_;
     my %credentials = $self->get_ssh_credentials($args{domain});
     delete $args{domain};
     return $self->backend->run_ssh_cmd($cmd, %credentials, %args);
@@ -587,7 +671,8 @@ With C<<wantarray => 1>> the function will return a reference to a list which
 contains I<stdout> and I<stderr>.
 This function is B<deprecated>, you should use C<<$svirt->run_cmd()>> instead.
 =cut
-sub get_cmd_output ($self, $cmd, $args = {}) {
+sub get_cmd_output {
+    my ($self, $cmd,    $args)   = @_;
     my (undef, $stdout, $stderr) = $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args->{domain}), wantarray => 1);
     return $args->{wantarray} ? [$stdout, $stderr] : $stdout;
 }

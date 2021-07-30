@@ -4,7 +4,7 @@
 
 package needle;
 
-use Mojo::Base -strict;
+use strictures;
 use autodie ':all';
 
 use Cwd 'cwd';

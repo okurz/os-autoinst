@@ -1,6 +1,6 @@
 package consoles::VNC;
 
-use Mojo::Base -strict;
+use strictures;
 use bytes;
 use feature 'say';
 

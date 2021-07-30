@@ -5,6 +5,7 @@
 package consoles::localXvnc;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use autodie ':all';
 
 use base 'consoles::vnc_base';

@@ -16,6 +16,7 @@ added structure.
 
 package OpenQA::Qemu::MutParams;
 use Mojo::Base -base, -signatures;
+use strictures;
 
 use Scalar::Util 'blessed';
 

@@ -3,6 +3,7 @@
 
 package signalblocker;
 use Mojo::Base -base, -signatures;
+use strictures;
 
 use bmwqemu;
 use POSIX ':signal_h';

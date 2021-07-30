@@ -3,6 +3,7 @@
 # Copyright 2020 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+use strictures;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 

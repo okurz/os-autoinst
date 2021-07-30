@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use strictures;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
@@ -7,7 +8,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
-use Test::Output;
+use Test::Output 'stdout_is';
 use Test::Warnings ':report_warnings';
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File 'path';

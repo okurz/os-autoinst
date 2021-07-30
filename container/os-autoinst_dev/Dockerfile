@@ -131,6 +131,7 @@ RUN zypper in -y -C \
        'perl(constant)' \
        'perl(integer)' \
        'perl(strict)' \
+       'perl(strictures)' \
        'perl(version)' \
        'perl(warnings)' \
    && zypper clean

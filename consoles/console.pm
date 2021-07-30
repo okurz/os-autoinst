@@ -17,6 +17,7 @@ of other functions. See vnc_base and virtio_terminal to see how this works.
 package consoles::console;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use autodie ':all';
 
 require IPC::System::Simple;

@@ -3,6 +3,7 @@
 package consoles::virtio_terminal;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use autodie;
 
 use base 'consoles::console';

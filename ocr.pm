@@ -4,6 +4,7 @@
 
 package ocr;
 use Mojo::Base -strict, -signatures;
+use strictures;
 require IPC::System::Simple;
 use autodie ':all';
 

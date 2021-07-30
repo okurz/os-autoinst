@@ -4,7 +4,7 @@
 ## Multi-Machine API
 package mmapi;
 
-use Mojo::Base -strict;
+use strictures;
 
 use base 'Exporter';
 our @EXPORT = qw(get_children_by_state get_children get_parents

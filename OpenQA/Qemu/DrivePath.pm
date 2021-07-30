@@ -11,6 +11,7 @@ to a controller.
 
 package OpenQA::Qemu::DrivePath;
 use Mojo::Base -base, -signatures;
+use strictures;
 
 has 'id';
 has 'controller';

@@ -7,6 +7,7 @@
 package consoles::sshIucvconn;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use autodie ':all';
 
 use base 'consoles::network_console';
