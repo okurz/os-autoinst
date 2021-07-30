@@ -9,11 +9,11 @@ package backend::generalhw;
 use Mojo::Base 'backend::baseclass', -signatures;
 use strictures;
 use autodie ':all';
-use bmwqemu;
 use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
+use log;
 
 sub new ($class) {
     # required for the tests to access our HTTP port

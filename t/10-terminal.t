@@ -16,6 +16,7 @@ use Time::HiRes 'usleep';
 use File::Temp 'tempfile';
 use Mojo::Log;
 use Mojo::JSON qw( encode_json decode_json );
+use log;
 
 use Test::Warnings ':report_warnings';
 my $main_pid = $$;
@@ -23,7 +24,6 @@ my $main_pid = $$;
 use consoles::virtio_terminal;
 use testapi ();
 use myjsonrpc;
-use bmwqemu ();
 
 our $VERSION;
 

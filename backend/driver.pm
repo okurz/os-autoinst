@@ -22,6 +22,7 @@ use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
 use signalblocker;
+use log;
 
 no warnings 'redefine';    # unclear why this is needed
 sub new ($class, $name) {

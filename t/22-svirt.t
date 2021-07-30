@@ -22,6 +22,7 @@ use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use OpenQA::Isotovideo::Utils qw(handle_generated_assets);
 use OpenQA::Isotovideo::CommandHandler;
+use log;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;

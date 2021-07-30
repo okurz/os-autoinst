@@ -13,6 +13,7 @@ use Socket;
 use File::Path 'mkpath';
 use File::Which;
 use Time::Seconds;
+use log;
 
 # helper function
 # Keep ssh session for the maximum of ServerAliveCountMax x ServerAliveInterval seconds

@@ -15,6 +15,7 @@ use Class::Accessor 'antlers';
 use Mojo::JSON qw(decode_json);
 
 use backend::svirt;
+use log;
 
 has instance => (is => "rw", isa => "Num");
 has name => (is => "rw", isa => "Str");

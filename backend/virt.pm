@@ -5,7 +5,7 @@ package backend::virt;
 
 use Mojo::Base 'backend::baseclass', -signatures;
 use strictures;
-use bmwqemu;
+use bmwqemu ();
 
 sub new ($class) {
     my $self = $class->SUPER::new;

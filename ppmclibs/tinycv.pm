@@ -6,7 +6,6 @@ package tinycv;
 
 use strictures;
 
-use bmwqemu 'fctwarn';
 use File::Basename;
 use Math::Complex 'sqrt';
 require Exporter;
@@ -22,6 +21,7 @@ bootstrap tinycv $VERSION;
 package tinycv::Image;
 
 use strictures;
+use log;
 
 sub mean_square_error {
     my ($areas) = @_;

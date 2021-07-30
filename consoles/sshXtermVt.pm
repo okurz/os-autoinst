@@ -9,6 +9,7 @@ use strictures;
 use autodie ':all';
 use IO::Socket::INET;
 require IPC::System::Simple;
+use log;
 
 sub activate ($self) {
     # start Xvnc

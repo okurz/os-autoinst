@@ -7,8 +7,8 @@ use Mojo::Base 'Exporter';
 use strictures;
 use Carp;
 use Mojo::File 'path';
-use bmwqemu;
 use Mojo::IOLoop::ReadWriteProcess 'process';
+use log;
 
 our @EXPORT_OK = qw(
   dd_gen_params

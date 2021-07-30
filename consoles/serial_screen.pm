@@ -9,6 +9,7 @@ use integer;
 use English -no_match_vars;
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use Carp 'croak';
+use log;
 
 our $VERSION;
 

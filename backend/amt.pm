@@ -12,6 +12,7 @@ require Carp;
 use bmwqemu ();
 use IPC::Run ();
 require IPC::System::Simple;
+use log;
 
 # xml namespaces
 my $IPS = "http://intel.com/wbem/wscim/1/ips-schema/1";

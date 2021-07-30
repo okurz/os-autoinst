@@ -7,7 +7,9 @@
 package consoles::sshSerial;
 
 use Mojo::Base 'consoles::console', -signatures;
+use strictures;
 use consoles::ssh_screen;
+use log;
 
 sub new ($class, $testapi_console, $args) {
     return $class->SUPER::new($testapi_console, $args);

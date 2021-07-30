@@ -7,14 +7,12 @@ package bmwqemu;
 use strictures;
 use autodie ':all';
 use Fcntl ':flock';
-use Mojo::File qw(path);
-use Term::ANSIColor;
 use log;
 
 use Exporter 'import';
 
 our $VERSION;
-our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstate save_vars);
+our @EXPORT_OK = qw(save_vars);
 
 require IPC::System::Simple;
 use log;

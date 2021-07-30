@@ -14,7 +14,6 @@ use POSIX 'mkfifo';
 use Time::Seconds;
 use consoles::virtio_terminal;
 use testapi;
-use bmwqemu;
 
 my $pipe_data_written;
 sub wait_till_pipe_data_written() { sleep 1 while (!$pipe_data_written) }

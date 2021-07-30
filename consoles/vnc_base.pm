@@ -8,8 +8,7 @@ use Mojo::Base 'consoles::network_console', -signatures;
 use strictures;
 use consoles::VNC;
 use Time::HiRes qw(usleep);
-
-use bmwqemu ();
+use log;
 
 # speed limit: 30 keys per second
 use constant VNC_TYPING_LIMIT_DEFAULT => 30;

@@ -32,6 +32,7 @@ use OpenQA::Exceptions;
 use Time::Seconds;
 use English -no_match_vars;
 use OpenQA::NamedIOSelect;
+use log;
 
 # should be a singleton - and only useful in backend process
 our $backend;

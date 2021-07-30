@@ -74,6 +74,7 @@ use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch
   checkout_git_refspec handle_generated_assets load_test_schedule);
+use log;
 
 session->enable;
 session->enable_subreaper;

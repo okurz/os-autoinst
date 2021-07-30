@@ -4,6 +4,7 @@
 use Mojo::Base 'basetest', -signatures;
 use strictures;
 use testapi;
+use log;
 
 sub run {
     # Test done this way, because:

@@ -18,6 +18,7 @@ use Test::Warnings qw(warnings :report_warnings);
 use Time::HiRes qw(sleep);
 use POSIX ':signal_h';
 use signalblocker;
+use log;
 
 no warnings 'redefine';
 sub log::diag { note $_[0] }

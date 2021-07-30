@@ -7,6 +7,7 @@ use Mojo::Base 'consoles::console', -signatures;
 use strictures;
 use backend::svirt qw(SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
 use consoles::ssh_screen;
+use log;
 
 sub new ($class, $testapi_console, $args) {
     my $self = $class->SUPER::new($testapi_console, $args);

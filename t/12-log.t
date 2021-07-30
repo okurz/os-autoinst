@@ -17,10 +17,10 @@
 
 use Test::Most;
 use Test::Output 'stderr_like';
+use log;
 
 
 subtest 'log_call' => sub {
-    require log;
     sub log_call_test {
         log::log_call(foo => "bar\tbaz\rboo\n");
     }

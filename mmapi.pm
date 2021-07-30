@@ -12,10 +12,10 @@ our @EXPORT = qw(get_children_by_state get_children get_parents
   api_call_2 handle_api_error get_current_job_id
 );
 
-require bmwqemu;
-
+use bmwqemu ();
 use Mojo::UserAgent;
 use Mojo::URL;
+use log;
 
 our $retry_count = $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT} // 30;
 our $retry_interval = $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL} // 10;

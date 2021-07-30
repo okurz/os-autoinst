@@ -8,12 +8,12 @@ use Mojo::Base -strict, -signatures;
 use strictures;
 use autodie ':all';
 
-use bmwqemu ();
 use ocr;
 use testapi ();
 use autotest ();
 use MIME::Base64 'decode_base64';
 use Mojo::File 'path';
+use log;
 
 my $serial_file_pos = 0;
 my $autoinst_log_pos = 0;

@@ -15,6 +15,7 @@ BEGIN {
     $ENV{PERL_MYJSONRPC_DEBUG} = 1;
 }
 use myjsonrpc;
+use log;
 
 use Test::Warnings qw(warnings :report_warnings);
 

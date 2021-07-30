@@ -5,12 +5,12 @@ package backend::pvm;
 use Mojo::Base 'backend::baseclass', -signatures;
 use strictures;
 use autodie ':all';
-use bmwqemu qw(diag fctwarn);
 use File::Path 'mkpath';
 require IPC::System::Simple;
 use File::Basename;
 use Digest::MD5 'md5_hex';
 use osutils qw(dd_gen_params gen_params runcmd);
+use log;
 
 # this backend relies on NovaLink tools being around on the worker
 # host. It supports HDD_1 and publishing assets
@@ -50,7 +50,7 @@ sub do_extract_assets ($self, $args) {
     $cmd = $cmd . " VirtualDisk.name=$disk";
     $cmd = $cmd . " -d VirtualDisk.udid --hide-label";
     #attach disk
-    diag "Attaching $disk to $lpar";
+    log::diag "Attaching $disk to $lpar";
     $self->pvmctl("scsi", "create", "lv", $disk, $lpar);
 
     my $prefix = "/dev/disk/by-id/scsi-SAIX_VDASD_";
@@ -59,7 +59,7 @@ sub do_extract_assets ($self, $args) {
     my $device = $prefix . substr($id, 2);
 
     if (!$format || $format !~ /^raw$/) {
-        diag "do_extract_assets: Image will be saved as raw eitherway";
+        log::diag "do_extract_assets: Image will be saved as raw eitherway";
     }
 
     #rescan scsi for newly attached disk
@@ -130,7 +130,7 @@ sub attach_console ($vars) {
     $vncport =~ /([0-9]+)/;
     chomp($vncport);
     $vars->{VNC} = $vncport;
-    diag "VNC is $vars->{VNC}";
+    log::diag "VNC is $vars->{VNC}";
 }
 
 sub image_exists ($img, $size) {
@@ -178,7 +178,7 @@ sub start_lpar ($self) {
 
     #we copy isos from nfs mount on VIO side to VMLibrary
     my $source_iso = '/iso/' . basename($vars->{ISO});
-    diag "source_iso: $source_iso, vio iso: $iso";
+    log::diag "source_iso: $source_iso, vio iso: $iso";
     my $iso_present = qx/pvmctl media list -d VirtualOpticalMedia.media_name --where VirtualOpticalMedia.name=$iso/;
     if ($iso_present !~ /$iso/) {
         #copy over from nfs to VMLibrary

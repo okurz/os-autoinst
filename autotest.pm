@@ -6,7 +6,6 @@ package autotest;
 
 use strictures;
 
-use bmwqemu;
 use common qw(result_dir);
 use Exporter 'import';
 use File::Basename;
@@ -14,6 +13,7 @@ use Socket;
 use IO::Handle;
 use POSIX '_exit';
 use cv;
+use log;
 use signalblocker qw();
 use Scalar::Util 'blessed';
 use Mojo::IOLoop::ReadWriteProcess 'process';

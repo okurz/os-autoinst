@@ -4,7 +4,6 @@
 package OpenQA::Isotovideo::CommandHandler;
 use Mojo::Base 'Mojo::EventEmitter', -signatures;
 
-use bmwqemu;
 use testapi 'diag';
 use OpenQA::Isotovideo::Interface;
 use Cpanel::JSON::XS;

@@ -14,6 +14,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Socket;
 use myjsonrpc;
+use log;
 
 use Test::Warnings qw(warnings :report_warnings);
 

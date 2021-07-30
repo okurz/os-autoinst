@@ -9,8 +9,9 @@ use File::Basename;
 use File::Path 'mkpath';
 use IO::Scalar;
 use Time::HiRes 'usleep';
-use bmwqemu;
 use osutils qw(runcmd);
+use bmwqemu ();
+use log;
 
 use constant IMAGE_STORAGE => '/var/lib/libvirt/images/';
 

@@ -7,6 +7,7 @@ package backend::ikvm;
 use Mojo::Base 'backend::ipmi', -signatures;
 use strictures;
 use autodie ':all';
+use bmwqemu ();
 
 sub relogin_vnc ($self) {
     my $vncopts = {

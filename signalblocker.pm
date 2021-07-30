@@ -5,8 +5,8 @@ package signalblocker;
 use Mojo::Base -base, -signatures;
 use strictures;
 
-use bmwqemu;
 use POSIX ':signal_h';
+use log;
 
 # OpenCV forks a lot of threads and the signals we may get (TERM from the
 # parent, CHLD from children) would be delivered to an undefined thread.

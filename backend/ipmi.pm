@@ -8,6 +8,7 @@ use strictures;
 use autodie ':all';
 use Time::HiRes qw(sleep);
 use Time::Seconds;
+use log;
 use IPC::Run ();
 require IPC::System::Simple;
 

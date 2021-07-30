@@ -8,8 +8,8 @@ use strictures;
 use autodie ':all';
 require IPC::System::Simple;
 use POSIX '_exit';
-use bmwqemu;
 use IO::Pipe;
+use log;
 
 sub activate ($self) {
     $self->{serial_pipe} = IO::Pipe->new();

@@ -12,9 +12,9 @@ use Try::Tiny;
 use Socket;
 use POSIX '_exit', 'strftime';
 use myjsonrpc;
-use bmwqemu;
 use Mojo::JSON 'to_json';
 use Mojo::File 'path';
+use log;
 
 BEGIN {
     $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';

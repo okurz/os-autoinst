@@ -36,6 +36,7 @@ use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
 use POSIX ();
+use log;
 
 use constant STATE_FILE => 'qemu_state.json';
 

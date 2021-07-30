@@ -11,7 +11,7 @@ use Mojo::File qw(path);
 use File::stat;
 use Try::Tiny;
 use POSIX 'strftime';
-use bmwqemu;
+use log;
 use needle;
 
 has files_to_download => sub { [] };

@@ -17,6 +17,7 @@ use Try::Tiny;
 require IPC::System::Simple;
 use OpenQA::Benchmark::Stopwatch;
 use OpenQA::Isotovideo::Utils 'checkout_git_refspec';
+use log;
 
 our %needles;
 our %tags;

@@ -23,8 +23,9 @@ use MIME::Base64 'decode_base64';
 use Scalar::Util qw(looks_like_number reftype);
 use B::Deparse;
 use Time::Seconds;
+use log;
+use bmwqemu ();
 
-require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars

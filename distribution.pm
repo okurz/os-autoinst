@@ -7,6 +7,7 @@ use strictures;
 
 use testapi ();
 use Carp 'croak';
+use log;
 
 sub new {
     my ($class) = @_;

@@ -7,6 +7,7 @@ use Mojo::Base 'consoles::serial_screen', -signatures;
 use Carp 'croak';
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Time::Seconds;
+use log;
 
 has ssh_connection => undef;
 has ssh_channel => undef;

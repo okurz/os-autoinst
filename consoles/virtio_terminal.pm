@@ -14,6 +14,7 @@ use Scalar::Util 'blessed';
 use Cwd;
 use consoles::serial_screen ();
 use Fcntl;
+use log;
 
 our $VERSION;
 

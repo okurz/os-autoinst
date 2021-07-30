@@ -13,6 +13,7 @@ package backend::console_proxy;
 use Mojo::Base -strict, -signatures;
 use strictures;
 use feature 'say';
+use log;
 
 sub new ($class, $console) {
 

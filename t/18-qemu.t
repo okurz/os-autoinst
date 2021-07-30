@@ -18,6 +18,7 @@ use bmwqemu;
 
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::Proc;
+use log;
 
 use constant TMPPATH => '/tmp/18-qemu.t/';
 
