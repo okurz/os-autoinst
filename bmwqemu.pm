@@ -6,7 +6,9 @@ package bmwqemu;
 
 use strictures;
 use autodie ':all';
+use Time::HiRes qw(sleep);
 use Fcntl ':flock';
+use common 'result_dir';
 use log;
 
 use Exporter 'import';

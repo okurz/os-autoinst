@@ -18,6 +18,7 @@ use POSIX 'tzset';
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use log;
+use bmwqemu ();
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
