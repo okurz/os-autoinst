@@ -11,7 +11,6 @@ use Time::Seconds;
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
   barrier_create barrier_wait barrier_try_wait barrier_destroy);
 
-use bmwqemu ();
 use mmapi qw(api_call_2 get_job_info);
 use testapi ();
 use log;
@@ -36,7 +35,7 @@ sub _try_lock {
     }
     if ($actual_return_code) {
         return 1 if $actual_return_code == 200;
-        bmwqemu::mydie "$log_ctx: lock owner already finished" if $actual_return_code == 410;
+        log::mydie "$log_ctx: lock owner already finished" if $actual_return_code == 410;
     }
     return 0;
 }
@@ -75,7 +74,7 @@ sub _api_call_with_logging_and_error_handling {
 
 sub mutex_lock {
     my ($name, $where) = @_;
-    bmwqemu::mydie('missing lock name') unless $name;
+    log::mydie('missing lock name') unless $name;
     log::diag("mutex lock '$name'");
     while (1) {
         my $res = _lock_action($name, $where);
@@ -87,14 +86,14 @@ sub mutex_lock {
 
 sub mutex_try_lock {
     my ($name, $where) = @_;
-    bmwqemu::mydie('missing lock name') unless $name;
+    log::mydie('missing lock name') unless $name;
     log::diag("mutex try lock '$name'");
     return _lock_action($name, $where);
 }
 
 sub mutex_unlock {
     my ($name, $where) = @_;
-    bmwqemu::mydie('missing lock name') unless $name;
+    log::mydie('missing lock name') unless $name;
     my $param = {action => 'unlock'};
     $param->{where} = $where if $where;
     return _api_call_with_logging_and_error_handling("mutex unlock '$name'", post => "mutex/$name", $param);
@@ -102,7 +101,7 @@ sub mutex_unlock {
 
 sub mutex_create {
     my ($name) = @_;
-    bmwqemu::mydie('missing lock name') unless $name;
+    log::mydie('missing lock name') unless $name;
     return _api_call_with_logging_and_error_handling("mutex create '$name'", post => "mutex", {name => $name});
 }
 
@@ -119,8 +118,8 @@ sub mutex_wait {
 ## Barriers
 sub barrier_create {
     my ($name, $tasks) = @_;
-    bmwqemu::mydie('missing barrier name') unless $name;
-    bmwqemu::mydie('missing number of barrier task') unless $tasks;
+    log::mydie('missing barrier name') unless $name;
+    log::mydie('missing number of barrier task') unless $tasks;
     return _api_call_with_logging_and_error_handling("barrier create '$name' for $tasks tasks", post => 'barrier', {name => $name, tasks => $tasks});
 }
 
@@ -136,7 +135,7 @@ sub _wait_action {
 # Reason to include this is to be able to unit test _wait_action without blocking
 sub barrier_try_wait {
     my ($name, $where) = @_;
-    bmwqemu::mydie('missing barrier name') unless $name;
+    log::mydie('missing barrier name') unless $name;
     log::diag("barrier try wait '$name'");
     return _wait_action($name, $where);
 }
@@ -146,7 +145,7 @@ sub barrier_wait {
 
     $check_dead_job = looks_like_number($check_dead_job) && $check_dead_job ? 1 : 0;
 
-    bmwqemu::mydie('missing barrier name') unless $name;
+    log::mydie('missing barrier name') unless $name;
     log::diag("barrier wait '$name'");
 
     _log $name, where => $where;
@@ -165,7 +164,7 @@ sub barrier_wait {
 
 sub barrier_destroy {
     my ($name, $where) = @_;
-    bmwqemu::mydie('missing barrier name') unless $name;
+    log::mydie('missing barrier name') unless $name;
     return _api_call_with_logging_and_error_handling("barrier destroy '$name'",
         delete => "barrier/$name", $where ? {where => $where} : undef, {200 => 1});
 }

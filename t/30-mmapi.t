@@ -28,6 +28,7 @@ use Test::Warnings qw(:report_warnings);
 use Mojolicious;
 use mmapi;
 use lockapi;
+use bmwqemu ();
 
 # mock testapi
 my $testapi_mock = Test::MockModule->new('testapi');

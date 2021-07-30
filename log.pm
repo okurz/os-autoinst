@@ -120,4 +120,10 @@ sub modstate {
     return;
 }
 
+sub mydie {
+    my ($cause_of_death) = @_;
+    log::log_call(cause_of_death => $cause_of_death);
+    croak "mydie";
+}
+
 1;

@@ -17,10 +17,7 @@ our @EXPORT_OK = qw(save_vars);
 require IPC::System::Simple;
 use log;
 
-sub mydie;
-
 $| = 1;
-
 
 our $default_timeout = 30;    # assert timeout, 0 is a valid timeout
 our $openqa_default_share = '/var/lib/openqa/share';
@@ -225,12 +222,6 @@ sub stop_vm {
     return unless $backend;
     my $ret = $backend->stop();
     return $ret;
-}
-
-sub mydie {
-    my ($cause_of_death) = @_;
-    log::log_call(cause_of_death => $cause_of_death);
-    croak "mydie";
 }
 
 # runtime information gathering functions end
