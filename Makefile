@@ -21,7 +21,12 @@ Makefile: ;
 build/build.ninja:
 	@mkdir -p ${build}
 	@cmake -B ${build} -S . -G Ninja
-
 .PHONY: setup-hooks
 setup-hooks: ## Install pre-commit git hooks
 	pre-commit install --install-hooks -t commit-msg -t pre-commit
+
+# Devel::Cover works best with a simple "test" target in a top-level Makefile
+# Call "check" for all tests and checks
+.PHONY: test
+test: all
+	prove -I. -r t/
