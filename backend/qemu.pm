@@ -883,8 +883,13 @@ sub start_qemu ($self) {
     $self->{proc}->init_blockdev_images();
 
     sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});
-    sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
-    sp('serial', 'chardev:serial0');
+    my $serial_id = 0;
+    if ($vars->{QEMU_SERIAL}) {
+        sp('serial', $vars->{QEMU_SERIAL});
+        $serial_id++;
+    }
+    sp('chardev', "ringbuf,id=serial$serial_id,logfile=serial$serial_id,logappend=on");
+    sp('serial', "chardev:serial$serial_id");
 
     if (!is_s390x($arch)) {
         if ($self->requires_audiodev) {

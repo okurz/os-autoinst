@@ -167,6 +167,7 @@ Supported variables per backend
 | QEMU_VIRTIO_RNG | boolean | 1 | Enable virtio random number generator |
 | QEMU_VIRTIO_KEYBOARD | boolean | 0 | Enable virtio-keyboard. The virtio-keyboard is a paravirtualized device with no emulation, higher performance and for example allows the use of `kbdrate` in SUTs to disable (or tweak) key repetition to prevent mistyping errors. |
 | QEMU_NUMA | boolean | 0 | Enable NUMA simulation, requires QEMUCPUS to be greater than one |
+| QEMU_SERIAL | string |  | Add an additional qemu serial device configuration, e.g. "chardev:serial42" |
 | QEMU_SMBIOS | see qemu -smbios ? | undef | pass this value to qemu -smbios |
 | QEMU_SOUNDHW | see qemu -soundhw ? | had | pass this value to qemu -soundhw (for qemu < 4.2) |
 | QEMU_AUDIODEV | see qemu -device ? | intel-hda | Audio device to use with audiodev to qemu -device (for qemu >= 4.2) |
