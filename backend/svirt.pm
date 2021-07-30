@@ -300,7 +300,6 @@ sub check_socket ($self, $fh, $write = undef) { $self->check_ssh_serial($fh, $wr
 
 sub stop_serial_grab ($self, @) {
     $self->stop_ssh_serial;
-    return;
 }
 
 sub get_wait_still_screen_on_here_doc_input ($self, $args) {

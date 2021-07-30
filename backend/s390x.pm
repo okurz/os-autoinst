@@ -8,6 +8,7 @@ use autodie ':all';
 use English;
 require IPC::System::Simple;
 use Carp qw(confess cluck carp croak);
+use bmwqemu ();
 
 sub new ($class) {
     my $self = $class->SUPER::new;

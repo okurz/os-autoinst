@@ -3,18 +3,13 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::ipmi;
-use Mojo::Base 'backend::baseclass', -signatures;
+use Mojo::Base 'backend::remote', -signatures;
 use autodie ':all';
 use Feature::Compat::Try;
 use Time::HiRes qw(sleep);
 use Time::Seconds;
 use IPC::Run ();
 require IPC::System::Simple;
-
-sub new ($class) {
-    $bmwqemu::vars{WORKER_HOSTNAME} or die 'Need variable WORKER_HOSTNAME';
-    return $class->SUPER::new;
-}
 
 sub ipmi_cmdline ($self) {
     $bmwqemu::vars{"IPMI_$_"} or die "Need variable IPMI_$_" for qw(HOSTNAME USER PASSWORD);
