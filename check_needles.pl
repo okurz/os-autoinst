@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use Mojo::Base -strict;
+use strictures;
 
 use File::Basename;
 

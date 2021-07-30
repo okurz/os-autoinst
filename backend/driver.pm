@@ -10,6 +10,7 @@
 package backend::driver;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use autodie ':all';
 
 use Carp 'croak';

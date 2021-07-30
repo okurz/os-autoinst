@@ -4,7 +4,7 @@
 
 package consoles::vnc_base;
 
-use Mojo::Base -strict;
+use strictures;
 use feature 'say';
 
 use base 'consoles::network_console';

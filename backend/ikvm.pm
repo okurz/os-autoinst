@@ -5,6 +5,7 @@
 package backend::ikvm;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use autodie ':all';
 
 use base 'backend::ipmi';

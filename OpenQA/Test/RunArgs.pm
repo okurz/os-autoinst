@@ -10,5 +10,6 @@ context with loadtest should create a subclass of this object.
 
 package OpenQA::Test::RunArgs;
 use Mojo::Base -base, -signatures;
+use strictures;
 
 1;

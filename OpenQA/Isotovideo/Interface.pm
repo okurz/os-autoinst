@@ -4,6 +4,7 @@
 package OpenQA::Isotovideo::Interface;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 # version of the test API and the API relevant to the worker
 # -> increment on every change of such APIs

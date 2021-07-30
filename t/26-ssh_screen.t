@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 # Copyright 2019 SUSE LLC
 
+use strictures;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Warnings ':report_warnings';

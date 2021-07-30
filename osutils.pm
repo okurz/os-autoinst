@@ -4,7 +4,7 @@
 package osutils;
 
 require 5.002;
-use Mojo::Base -strict;
+use strictures;
 
 use Carp;
 use base 'Exporter';

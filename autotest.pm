@@ -4,8 +4,7 @@
 
 package autotest;
 
-use strict;
-use warnings;
+use strictures;
 
 use bmwqemu;
 use Exporter 'import';

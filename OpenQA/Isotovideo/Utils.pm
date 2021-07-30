@@ -3,6 +3,7 @@
 
 package OpenQA::Isotovideo::Utils;
 use Mojo::Base -base, -signatures;
+use strictures;
 use Mojo::URL;
 use Mojo::File qw(path);
 

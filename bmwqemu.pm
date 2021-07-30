@@ -4,7 +4,7 @@
 
 package bmwqemu;
 
-use Mojo::Base -strict;
+use strictures;
 use autodie ':all';
 use Fcntl ':flock';
 use Time::HiRes qw(sleep);

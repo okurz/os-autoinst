@@ -3,6 +3,7 @@
 
 package OpenQA::Isotovideo::NeedleDownloader;
 use Mojo::Base -base, -signatures;
+use strictures;
 
 use Mojo::UserAgent;
 use Mojo::URL;

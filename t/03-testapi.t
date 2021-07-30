@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use strictures;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 
@@ -660,9 +661,8 @@ subtest 'compat_args' => sub {
     is_deeply({testapi::compat_args(\%def_args, [], k => 5)}, {a => $def_args{a}, b => $def_args{b}, c => $def_args{c}, k => 5}, 'Additional parameter 2');
     is_deeply({testapi::compat_args(\%def_args, ['c'], 666, k => 5)}, {a => $def_args{a}, b => $def_args{b}, c => 666, k => 5}, 'Additional parameter 3');
 
-    like(warning { testapi::compat_args(\%def_args, [], a => 'Z', 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 1');
-    like(warning { testapi::compat_args(\%def_args, [], 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 2');
-
+    like(warning { testapi::compat_args(\%def_args, [], a => 'Z', 'outch') }, qr/^Odd number of arguments/, 'Warned on Odd number 1');
+    like(warning { testapi::compat_args(\%def_args, [], 'outch') }, qr/^Odd number of arguments/, 'Warned on Odd number 2');
     is_deeply({testapi::compat_args(\%def_args, ['a'], '^[invalid regex string')}, {%def_args, a => '^[invalid regex string'}, 'Check invalid regex string');
 };
 

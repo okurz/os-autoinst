@@ -5,6 +5,7 @@
 package consoles::s3270;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use feature 'say';
 
 use base 'consoles::localXvnc';

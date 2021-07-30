@@ -5,6 +5,7 @@
 package backend::svirt;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 use base 'backend::virt';
 

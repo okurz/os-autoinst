@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 
+use strictures;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 
@@ -18,7 +19,6 @@ use autodie ':all';
 use commands;
 use Mojo::IOLoop::Server;
 use Time::HiRes 'sleep';
-use Test::Warnings ':report_warnings';
 use Test::Output;
 use Test::Mojo;
 use Test::MockModule;

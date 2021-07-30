@@ -4,6 +4,7 @@
 package backend::pvm_hmc;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 use base 'backend::virt';
 

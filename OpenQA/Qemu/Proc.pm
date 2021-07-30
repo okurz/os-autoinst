@@ -20,6 +20,7 @@ parameters which are represented as complex objects.
 
 package OpenQA::Qemu::Proc;
 use Mojo::Base -base, -signatures;
+use strictures;
 
 use Data::Dumper;
 use File::Basename;

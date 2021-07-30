@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 $_ = shift;
 unless (m{^/}) {

@@ -4,6 +4,7 @@
 package backend::null;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 use base 'backend::baseclass';
 
