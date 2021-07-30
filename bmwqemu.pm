@@ -8,15 +8,9 @@ use strictures;
 use autodie ':all';
 use Fcntl ':flock';
 use Time::HiRes qw(sleep);
-use IO::Socket;
-use Carp;
-use Mojo::JSON qw(encode_json);
-use Cpanel::JSON::XS ();
-use File::Path 'remove_tree';
-use Data::Dumper;
-use Mojo::Log;
 use Mojo::File qw(path);
 use Term::ANSIColor;
+use log;
 
 use Exporter 'import';
 
@@ -50,9 +44,6 @@ our @ovmf_locations = (
 
 our %vars;
 tie %vars, 'bmwqemu::tiedvars', %vars;
-
-no warnings 'redefine';    # unclear why this is needed
-sub result_dir { 'testresults' }
 
 # deprecated functions, moved to log module
 {
@@ -128,9 +119,9 @@ sub init {
     remove_tree("assets_public");
     remove_tree("assets_private");
 
-    remove_tree(result_dir);
-    mkdir result_dir;
-    mkdir join('/', result_dir, 'ulogs');
+    remove_tree(common::result_dir);
+    mkdir common::result_dir;
+    mkdir join('/', common::result_dir, 'ulogs');
 
     log::init_logger;
 }
