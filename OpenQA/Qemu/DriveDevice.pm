@@ -90,10 +90,8 @@ sub gen_cmdline ($self) {
             'drive=' . $self->drive->node_name);
 
         push(@params, 'share-rw=true') if $pathn > 1;
+        push(@params, 'bus=' . $path->controller->id . '.0') if defined $path->controller;
 
-        if (defined $path->controller) {
-            push(@params, 'bus=' . $path->controller->id . '.0');
-        }
         # Configure bootindex only for first path
         $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
         $self->_push_ifdef(\@params, 'serial=', $self->serial);
@@ -149,9 +147,7 @@ sub _to_map ($self) {
 
 sub _from_map ($self, $map, $cont_conf, $snap_conf) {
     my $drive = OpenQA::Qemu::BlockDev->new()->_from_map($map->{drives}, $snap_conf);
-    my @paths = map {
-        OpenQA::Qemu::DrivePath->new()->_from_map($_, $cont_conf)
-    } @{$map->{paths}};
+    my @paths = map { OpenQA::Qemu::DrivePath->new()->_from_map($_, $cont_conf) } @{$map->{paths}};
 
     return $self->drive($drive)
       ->model($map->{model})
