@@ -30,6 +30,7 @@ set(PERL_FILES
     basetest.pm
     bmwqemu.pm
     commands.pm
+    common.pm
     consoles/amtSol.pm
     consoles/console.pm
     consoles/ipmiSol.pm
