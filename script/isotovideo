@@ -91,17 +91,16 @@ use constant {
 # Details: https://progress.opensuse.org/issues/90371
 use JSON::PP;
 
-use FindBin '$RealBin';
-
-my $installprefix;    # $bmwqemu::topdir
+my $installprefix;    # $bmwqemu::scriptdir
 
 BEGIN {
     # the following line is modified during make install
     $installprefix = undef;
 
-    my $topdir = "$RealBin/.." || '..';
-    $installprefix ||= $topdir;
-    unshift @INC, $installprefix;
+    my ($wd) = $0 =~ m-(.*)/-;
+    $wd ||= '.';
+    $installprefix ||= $wd;
+    unshift @INC, "$installprefix";
 }
 
 use log qw(diag);
@@ -118,9 +117,6 @@ my %options;
 
 # global exit status
 my $RETURN_CODE = EXIT_STATUS_ERR;
-
-# abstraction providing many helpers and function to run the select-loop
-my $runner;
 
 sub usage ($r) {
     $RETURN_CODE = $r;
@@ -170,6 +166,9 @@ $ENV{ANSI_COLORS_DISABLED} = 1 if $color eq 'no';
 
 chdir $options{workdir} if $options{workdir};
 
+# abstraction providing many helpers and function to run the select-loop
+my $runner;
+
 # make sure all commands coming from the backend will not be in the
 # developers's locale - but a defined english one. This is SUSE's
 # default locale
@@ -178,12 +177,23 @@ $ENV{LANG} = 'en_US.UTF-8';
 
 try {
     diag(_get_version_string());
-    $log::direct_output = $options{debug};    # enable debug default when started from a tty
-    $bmwqemu::topdir = $installprefix;
+
+    # enable debug default when started from a tty
+    $log::direct_output = $options{debug};
+
+    $bmwqemu::scriptdir = $installprefix;
+
+    local $SIG{__WARN__} = sub { die "warning treated fatal (disable with 'NO_FATAL_WARNINGS'): @_" } unless $bmwqemu::vars{NO_FATAL_WARNINGS};
     $runner = OpenQA::Isotovideo::Runner->new;
-    $runner->init(@ARGV);
+    $runner->_init_bmwqemu(@ARGV);
+    $runner->prepare;
+    $runner->start_autotest;
+    $runner->create_backend;
+
     spawn_debuggers;
+
     $runner->handle_commands;
+
     $RETURN_CODE = EXIT_STATUS_OK;
     $runner->run;    # enter the main loop: process messages from autotest, command server and backend
     $RETURN_CODE = $runner->exit_code_from_test_results if $options{'exit-status-from-test-results'};
@@ -198,7 +208,10 @@ END {
     $runner->backend->stop if $runner and $runner->backend;
     $runner and $runner->stop_commands('test execution ended through exception');
     $runner and $runner->stop_autotest();
-    $RETURN_CODE //= 0;    # in case of early exit, e.g. help display
+
+    # in case of early exit, e.g. help display
+    $RETURN_CODE //= 0;
+
     print "$$: EXIT $RETURN_CODE\n";
     $? = $RETURN_CODE;
 }
