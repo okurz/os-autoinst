@@ -86,6 +86,8 @@ subtest modules_test => sub {
     ok($basetest->is_applicable, 'a passlisted module shows up');
     $bmwqemu::vars{EXCLUDE_MODULES} = 'foo';
     ok(!$basetest->is_applicable, 'passlisted modules are overridden by blocklist');
+    $bmwqemu::vars{EXCLUDE_MODULES} = '';
+    $bmwqemu::vars{EXIT_AFTER}      = 'foo';
 };
 
 subtest parse_serial_output => sub {
