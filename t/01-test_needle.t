@@ -56,6 +56,7 @@ needle_init;
 $img1 = tinycv::read($data_dir . 'bootmenu.test.png');
 $needle = needle->new('bootmenu.ref.json');
 
+ok(defined $needle, 'needle is parsed') or BAIL_OUT('Could not read needle, called from correct directory?');
 is($needle->has_tag('inst-bootmenu'), 1, "tag found");
 is($needle->has_tag('foobar'), 0, "tag not found");
 

@@ -68,7 +68,7 @@ sub new {
         catch {
             warn "broken json $jsonfile: $_";
         };
-        return undef unless $json;
+        return undef unless $json && $json eq 'HASHREF';
     }
 
     $self->{tags} = $json->{tags} || [];
