@@ -27,6 +27,7 @@ set(PERL_FILES
     basetest.pm
     bmwqemu.pm
     commands.pm
+    common.pm
     consoles/console.pm
     consoles/ipmiSol.pm
     consoles/localXvnc.pm
