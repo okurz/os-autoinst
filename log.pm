@@ -11,6 +11,7 @@ use POSIX 'strftime';
 use Time::HiRes qw(gettimeofday);
 use Time::Moment;
 use Term::ANSIColor;
+use common qw(result_dir);
 use Exporter 'import';
 our @EXPORT_OK = qw(logger init_logger diag fctres fctinfo fctwarn modstate);
 
