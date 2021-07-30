@@ -13,6 +13,7 @@ use Time::Moment;
 use Term::ANSIColor;
 use Exporter 'import';
 our @EXPORT_OK = qw(logger init_logger diag fctres fctinfo fctwarn modstate);
+use common;
 
 our $logger;    ## no critic (Variables::ProhibitPackageVars)
 our $direct_output;    ## no critic (Variables::ProhibitPackageVars)

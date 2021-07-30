@@ -25,6 +25,7 @@ our $VERSION;
 our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstate save_vars);
 
 require IPC::System::Simple;
+use common;
 use log;
 
 sub mydie;
@@ -60,7 +61,6 @@ tie %vars, 'bmwqemu::tiedvars', %vars;
 sub ovmf_locations () { ($vars{UEFI_SECURE_BOOT} // 1) ? \@ovmf_locations : \@ovmf_locations_no_secure_boot }
 
 sub result_dir () { 'testresults' }
-
 # deprecated functions, moved to log module
 {
     no warnings 'once';
@@ -101,7 +101,7 @@ sub load_vars () {
     catch ($e) { return 0 }
     try { $ret = Cpanel::JSON::XS->new->relaxed->decode($data) }
     catch ($e) { die "parse error in vars.json:\n$e" }
-    %vars = %{$ret};
+    %common::vars = %{$ret};
     return;
 }
 
@@ -111,12 +111,12 @@ sub save_vars (%args) {
     flock $fd, LOCK_EX or die "cannot lock vars.json: $!\n";
     truncate $fd, 0 or die "cannot truncate vars.json: $!\n";
 
-    my $write_vars = \%vars;
+    my $write_vars = \%common::vars;
     if ($args{no_secret}) {
         $write_vars = {};
         my $hide_re = '^_SECRET_|_PASSWORD';
-        $hide_re .= "|$vars{_HIDE_SECRETS_REGEX}" if $vars{_HIDE_SECRETS_REGEX};
-        $write_vars->{$_} = $vars{$_} for (grep !/($hide_re)/, keys %vars);
+        $hide_re .= "|$common::vars{_HIDE_SECRETS_REGEX}" if $common::vars{_HIDE_SECRETS_REGEX};
+        $write_vars->{$_} = $common::vars{$_} for (grep !/($hide_re)/, keys %common::vars);
     }
 
     # make sure the JSON is sorted
@@ -131,7 +131,7 @@ our $topdir;    ## no critic (Variables::ProhibitPackageVars)
 sub init () {
     load_vars();
 
-    $vars{BACKEND} ||= 'qemu';
+    $common::vars{BACKEND} ||= "qemu";
 
     # remove directories for asset upload
     remove_tree('assets_public');
@@ -145,12 +145,12 @@ sub init () {
 }
 
 sub _check_publish_vars () {
-    return 0 unless my $nd = $vars{NUMDISKS};
-    my @hdds = map { $vars{"HDD_$_"} } 1 .. $nd;
+    return 0 unless my $nd = $common::vars{NUMDISKS};
+    my @hdds = map { $common::vars{"HDD_$_"} } 1 .. $nd;
     for my $i (1 .. $nd) {
         for my $type (qw(STORE PUBLISH FORCE_PUBLISH)) {
             my $name = $type . "_HDD_$i";
-            next unless my $out = $vars{$name};
+            next unless my $out = $common::vars{$name};
             die "HDD_$i also specified in $name. This is not supported" if grep { $_ && $_ eq $out } @hdds;
         }
     }
@@ -198,14 +198,14 @@ sub _abort_if_storage_limit_exceeded () {
 
 sub ensure_valid_vars () {
     # defaults
-    $vars{QEMUPORT} ||= 15222;
-    $vars{VNC} ||= 90;
+    $common::vars{QEMUPORT} ||= 15222;
+    $common::vars{VNC}      ||= 90;
     # openQA already sets a random string we can reuse
-    $vars{JOBTOKEN} ||= random_string(10);
+    $common::vars{JOBTOKEN} ||= random_string(10);
 
-    die 'CASEDIR variable not set, unknown test case directory' if !defined $vars{CASEDIR};
-    die "No scripts in CASEDIR '$vars{CASEDIR}'\n" unless -e $vars{CASEDIR};
-    die "WHEELS_DIR '$vars{WHEELS_DIR}' does not exist" if defined $vars{WHEELS_DIR} && !-d $vars{WHEELS_DIR};
+    die 'CASEDIR variable not set, unknown test case directory' if !defined $common::vars{CASEDIR};
+    die "No scripts in CASEDIR '$common::vars{CASEDIR}'\n" unless -e $common::vars{CASEDIR};
+    die "WHEELS_DIR '$common::vars{WHEELS_DIR}' does not exist" if defined $common::vars{WHEELS_DIR} && !-d $common::vars{WHEELS_DIR};
     _abort_if_storage_limit_exceeded();
     _check_publish_vars();
     save_vars();
@@ -233,7 +233,7 @@ sub update_line_number () {
     return unless current_test;
     return unless current_test->{script};
     my @out;
-    my $casedir = $vars{CASEDIR} // '';
+    my $casedir = $common::vars{CASEDIR} // '';
     for (my $i = 10; $i > 0; $i--) {
         my ($package, $filename, $line, $subroutine) = caller $i;
         next unless $filename && $filename =~ /\Q$casedir/;
@@ -332,7 +332,7 @@ sub save_json_file ($result, $fn) {
 }
 
 sub scale_timeout ($timeout) {
-    return $timeout * ($vars{TIMEOUT_SCALE} // 1);
+    return $timeout * ($common::vars{TIMEOUT_SCALE} // 1);
 }
 
 =head2 random_string
