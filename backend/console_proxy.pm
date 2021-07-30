@@ -42,7 +42,7 @@ sub AUTOLOAD ($self, @args) {
             wantarray => wantarray,
         };
 
-        bmwqemu::log_call(wrapped_call => $wrapped_call);
+        log::log_call(wrapped_call => $wrapped_call);
         my $wrapped_retval = autotest::query_isotovideo('backend_proxy_console_call', $wrapped_call);
 
         if (exists $wrapped_retval->{exception}) {

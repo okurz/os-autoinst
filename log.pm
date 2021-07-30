@@ -19,7 +19,53 @@ our $direct_output;
 
 sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
 
-sub init_logger { logger->path(path('testresults', 'autoinst-log.txt')) unless $direct_output }
+sub init_logger { logger->path(path(common::result_dir, 'autoinst-log.txt')) unless $direct_output }
+
+sub update_line_number {
+    return unless $autotest::current_test;
+    return unless $autotest::current_test->{script};
+    my @out;
+    my $casedir = $bmwqemu::vars{CASEDIR} // '';
+    for (my $i = 10; $i > 0; $i--) {
+        my ($package, $filename, $line, $subroutine) = caller($i);
+        next unless $filename && $filename =~ /\Q$casedir/;
+        $filename =~ s@$casedir/?@@;
+        push @out, "$filename:$line called $subroutine";
+    }
+    $log::logger->debug(join(' -> ', @out));
+    return;
+}
+
+# pretty print like Data::Dumper but without the "VAR1 = " prefix
+sub pp {
+    # FTR, I actually hate Data::Dumper.
+    my $value_with_trailing_newline = Data::Dumper->new(\@_)->Terse(1)->Useqq(1)->Dump();
+    chomp($value_with_trailing_newline);
+    return $value_with_trailing_newline;
+}
+
+sub log_call {
+    my $fname = (caller(1))[3];
+    update_line_number();
+    my $params;
+    if (@_ == 1) {
+        $params = pp($_[0]);
+    }
+    else {
+        # key/value pairs
+        my @result;
+        while (my ($key, $value) = splice(@_, 0, 2)) {
+            if ($key =~ tr/0-9a-zA-Z_//c) {
+                # only quote if needed
+                $key = pp($key);
+            }
+            push @result, join("=", $key, pp($value));
+        }
+        $params = join(", ", @result);
+    }
+    logger->debug('<<< ' . $fname . "($params)");
+    return;
+}
 
 sub log_format_callback {
     my ($time, $level, @items) = @_;

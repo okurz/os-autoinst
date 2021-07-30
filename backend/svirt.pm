@@ -86,7 +86,7 @@ sub do_stop_vm ($self, @) {
 
 # Log stdout and stderr and return them in a list (comped).
 sub scp_get ($self, $src, $dest) {
-    bmwqemu::log_call(@_);
+    log::log_call(@_);
 
     my %credentials = $self->get_ssh_credentials(($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv' ? 'hyperv' : 'default');
     my $ssh = $self->new_ssh_connection(%credentials);
@@ -214,7 +214,7 @@ sub get_ssh_credentials ($self, $domain = 'default') {
 }
 
 sub start_serial_grab ($self, $name) {
-    bmwqemu::log_call(name => $name);
+    log::log_call(name => $name);
 
     my %credentials = $self->get_ssh_credentials(($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv' ? 'hyperv' : 'default');
     my ($ssh, $chan) = $self->start_ssh_serial(%credentials);
@@ -257,7 +257,7 @@ C<$args{port}> used non-default port
 C<$args{devname}> used device name
 =cut
 sub open_serial_console_via_ssh ($self, $name, %args) {
-    bmwqemu::log_call(name => $name, %args);
+    log::log_call(name => $name, %args);
     my ($chan, $cmd, $cmd_full, $ret, $ssh, $stderr, $stdout);
     my $port = $args{port} // '';
     my $devname = $args{devname} // '';

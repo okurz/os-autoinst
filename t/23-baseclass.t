@@ -28,7 +28,7 @@ mkdir 'testresults';
 $ENV{TZ} = 'UTC';
 tzset;
 
-bmwqemu::init_logger;
+log::init_logger;
 
 my $baseclass = backend::baseclass->new();
 

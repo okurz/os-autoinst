@@ -130,7 +130,7 @@ otherwise it dies.
 
 =cut
 sub open_pipe ($self) {
-    bmwqemu::log_call(pipe_prefix => $self->{pipe_prefix});
+    log::log_call(pipe_prefix => $self->{pipe_prefix});
 
     sysopen(my $fd_w, $self->{pipe_prefix} . '.in', O_WRONLY)
       or die "Can't open in pipe for writing $!";

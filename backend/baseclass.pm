@@ -763,7 +763,7 @@ sub proxy_console_call ($self, $wrapped_call) {
         local $SIG{__DIE__} = 'DEFAULT';
         $wrapped_result->{result} = $wrapped_call->{wantarray} ? [$console->$function(@$args)] : $console->$function(@$args);
     };
-    $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@) if $@;
+    $wrapped_result->{exception} = join("\n", log::pp($wrapped_call), $@) if $@;
     return $wrapped_result;
 }
 
@@ -876,7 +876,7 @@ sub set_tags_to_assert ($self, $args) {
                 next;
             }
             unless (ref($n) eq 'needle' && $n->{name}) {
-                warn "invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n);
+                warn "invalid needle passed <" . ref($n) . "> " . log::pp($n);
                 next;
             }
             push @$needles, $n;
@@ -1118,7 +1118,7 @@ sub retry_assert_screen ($self, $args) {
 
 # shared between svirt and s390 backend
 sub new_ssh_connection ($self, %args) {
-    bmwqemu::log_call(%{$self->hide_password(%args)});
+    log::log_call(%{$self->hide_password(%args)});
     my %credentials = $self->get_ssh_credentials;
     $args{$_} //= $credentials{$_} foreach (keys(%credentials));
     $args{username} ||= 'root';
@@ -1186,7 +1186,7 @@ sub get_ssh_credentials ($self) { }
 
 # open another ssh connection to grab the serial console
 sub start_ssh_serial ($self, %args) {
-    bmwqemu::log_call(%{$self->hide_password(%args)});
+    log::log_call(%{$self->hide_password(%args)});
     $self->stop_ssh_serial;
 
     my $ssh = $self->{serial} = $self->new_ssh_connection(%args);
@@ -1240,7 +1240,7 @@ sub run_ssh_cmd ($self, $cmd, %args) {
     $args{wantarray} //= 0;
     $args{keep_open} //= 1;
 
-    bmwqemu::log_call(cmd => $cmd, %{$self->hide_password(%args)});
+    log::log_call(cmd => $cmd, %{$self->hide_password(%args)});
     my ($ssh, $chan) = $self->run_ssh($cmd, %args);
     $chan->send_eof;
 
@@ -1261,7 +1261,7 @@ sub run_ssh_cmd ($self, $cmd, %args) {
 }
 
 sub run_ssh ($self, $cmd, %args) {
-    bmwqemu::log_call(cmd => $cmd, %{$self->hide_password(%args)});
+    log::log_call(cmd => $cmd, %{$self->hide_password(%args)});
     $args{blocking} //= 1;
     my $ssh = $self->new_ssh_connection(%args);
     my $chan = $ssh->channel() || $ssh->die_with_error("Unable to create SSH channel for executing \"$cmd\"");

@@ -70,7 +70,7 @@ consoles.
 sub type_string ($self, $nargs) {
     my $fd = $self->{fd_write};
 
-    bmwqemu::log_call(%$nargs);
+    log::log_call(%$nargs);
 
     my $text = $nargs->{text};
     my $term;
@@ -192,7 +192,7 @@ sub read_until ($self, $pattern, $timeout, %nargs) {
 
     $nargs{pattern} = $re;
     $nargs{timeout} = $timeout;
-    bmwqemu::log_call(%nargs);
+    log::log_call(%nargs);
 
   READ: while (1) {
         $loops++;
@@ -260,7 +260,7 @@ sub peak ($self, %nargs) {
     my $buf = '';
     my $read;
 
-    bmwqemu::log_call(%nargs);
+    log::log_call(%nargs);
   LOOP: {
         $read = sysread($self->{fd_read}, $buf, $buflen);
         last LOOP unless defined $read;
