@@ -10,6 +10,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_from);
+use Test::Warnings;
 use bmwqemu;
 use Mojo::File 'tempfile';
 use Data::Dumper;

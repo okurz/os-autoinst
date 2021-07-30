@@ -3,6 +3,7 @@
 use Test::Most;
 
 use Test::Pod;
+use Test::Warnings;
 use File::Basename;
 my $curdir = dirname(__FILE__);
 

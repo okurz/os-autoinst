@@ -11,6 +11,7 @@ use Test::Exception;
 use Test::Fatal;
 use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;
+use Test::Warnings;
 use File::Basename ();
 use File::Path 'rmtree';
 

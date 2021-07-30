@@ -9,6 +9,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output 'stderr_like';
+use Test::Warnings;
 use File::Temp 'tempdir';
 use File::Basename;
 use File::Path 'make_path';

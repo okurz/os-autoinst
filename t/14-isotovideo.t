@@ -8,6 +8,7 @@ use OpenQA::Test::TimeLimit '20';
 use autodie ':all';
 use IPC::System::Simple qw(system);
 use Test::Output qw(combined_like combined_from);
+use Test::Warnings;
 use File::Basename;
 use File::Path qw(remove_tree rmtree);
 use Cwd 'abs_path';

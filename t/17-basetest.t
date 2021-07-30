@@ -9,6 +9,7 @@ use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Fatal;
 use Test::Output qw(combined_like);
+use Test::Warnings;
 use File::Basename;
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);

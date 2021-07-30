@@ -7,6 +7,7 @@ use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Test::Warnings;
 use Socket;
 # This is the library we want to avoid, but it is OK just for testing
 use Socket::MsgHdr;
