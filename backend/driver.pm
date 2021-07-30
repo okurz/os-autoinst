@@ -23,6 +23,7 @@ use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
 use signalblocker;
 
+no warnings 'redefine';    # unclear why this is needed
 sub new ($class, $name) {
     my $self = bless({class => $class}, $class);
 
