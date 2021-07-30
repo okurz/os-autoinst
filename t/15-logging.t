@@ -10,17 +10,17 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_from);
-use bmwqemu;
 use Mojo::File qw(path tempfile);
 use Data::Dumper;
+use log;
 
 
 sub output_once {
-    bmwqemu::diag('Via diag function');
-    bmwqemu::fctres('Via fctres function');
-    bmwqemu::fctinfo('Via fctinfo function');
-    bmwqemu::fctwarn('Via fctwarn function');
-    bmwqemu::modstate('Via modstate function');
+    log::diag('Via diag function');
+    log::fctres('Via fctres function');
+    log::fctinfo('Via fctinfo function');
+    log::fctwarn('Via fctwarn function');
+    log::modstate('Via modstate function');
 }
 
 subtest 'Logging to STDERR' => sub {
@@ -34,7 +34,7 @@ subtest 'Logging to STDERR' => sub {
 
 subtest 'Logging to file' => sub {
     my $log_file = tempfile;
-    $bmwqemu::logger = Mojo::Log->new(path => $log_file);
+    $log::logger = Mojo::Log->new(path => $log_file);
     output_once;
     my @matches = (path($log_file)->slurp =~ m/Via .*? function/gm);
     ok(@matches == 5, 'All messages logged to file');
