@@ -29,8 +29,8 @@ unless (which('tesseract')) {
     exit(0);
 }
 
-stderr_like { needle::init } qr/loaded.*needles/, 'log output for needle init';
-my $img1 = tinycv::read(needle::needles_dir() . '/bootmenu.test.png');
+stderr_like { needle::init } qr/loaded [^0] needles/, 'log output for needle init';
+my $img1   = tinycv::read(needle::needles_dir() . '/bootmenu.test.png');
 my $needle = needle->new('bootmenu-ocr.ref.json');
 my $res;
 stderr_like { $res = $img1->search($needle) } qr/Tesseract.*OCR/, 'log output for OCR';

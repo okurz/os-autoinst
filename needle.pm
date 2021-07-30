@@ -38,6 +38,7 @@ sub new {
     die 'needles not initialized via needle::init() before needle constructor called' unless defined $needles_dir;
 
     my $json;
+    print("jsonfile: $jsonfile, ref: " . ref $jsonfile . "\n");
     if (ref $jsonfile eq 'HASH') {
         $json = $jsonfile;
         $jsonfile = $json->{file} || path($needles_dir, $json->{name} . '.json');
@@ -289,6 +290,8 @@ sub TO_JSON {
 }
 
 sub wanted_ {
+    print "wanted: $_\n";
+    $DB::single = 1 if $_ =~ /bootmenu.ref.json/;
     return unless (m/.json$/);
     my $needle = needle->new($File::Find::name);
     $needles{$needle->{name}} = $needle if $needle;
