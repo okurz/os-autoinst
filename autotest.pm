@@ -4,8 +4,7 @@
 
 package autotest;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use bmwqemu;
 use Exporter 'import';
