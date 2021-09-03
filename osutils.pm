@@ -4,6 +4,7 @@
 package osutils;
 
 use Mojo::Base 'Exporter';
+use strictures;
 use Carp;
 use Mojo::File 'path';
 use bmwqemu;

@@ -4,6 +4,7 @@
 
 package testapi;
 
+use strictures;
 use Carp;
 use Exporter;
 use Mojo::Base 'Exporter';

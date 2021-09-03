@@ -4,6 +4,7 @@
 package consoles::sshVirtshSUT;
 
 use Mojo::Base 'consoles::console', -signatures;
+use strictures;
 use backend::svirt qw(SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
 use consoles::ssh_screen;
 

@@ -3,6 +3,7 @@
 
 package backend::pvm;
 use Mojo::Base 'backend::baseclass', -signatures;
+use strictures;
 use autodie ':all';
 use bmwqemu qw(diag fctwarn);
 use File::Path 'mkpath';

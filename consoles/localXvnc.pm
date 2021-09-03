@@ -5,6 +5,7 @@
 package consoles::localXvnc;
 
 use Mojo::Base 'consoles::vnc_base', -signatures;
+use strictures;
 use autodie ':all';
 use IPC::Run ();
 require IPC::System::Simple;

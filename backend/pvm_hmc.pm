@@ -3,6 +3,7 @@
 
 package backend::pvm_hmc;
 use Mojo::Base 'backend::virt', -signatures;
+use strictures;
 
 # supporting the minimal command set of the HMC through a ssh tunnel
 

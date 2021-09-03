@@ -7,6 +7,7 @@
 package backend::generalhw;
 
 use Mojo::Base 'backend::baseclass', -signatures;
+use strictures;
 use autodie ':all';
 use bmwqemu;
 use IPC::Run ();

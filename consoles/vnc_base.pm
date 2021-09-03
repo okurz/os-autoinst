@@ -5,6 +5,7 @@
 package consoles::vnc_base;
 
 use Mojo::Base 'consoles::network_console', -signatures;
+use strictures;
 use consoles::VNC;
 use Time::HiRes qw(usleep);
 

@@ -3,6 +3,7 @@
 
 package backend::null;
 use Mojo::Base 'backend::baseclass', -signatures;
+use strictures;
 
 sub new ($self) { $self->SUPER::new }
 

@@ -6,6 +6,7 @@
 package backend::baseclass;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use feature 'say';
 use autodie ':all';
 

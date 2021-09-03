@@ -6,6 +6,7 @@
 # This test covers the signalblocker module and tinycv's helper to create
 # threads upfront.
 
+use strictures;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 

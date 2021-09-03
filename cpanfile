@@ -67,6 +67,7 @@ requires 'base';
 requires 'constant';
 requires 'integer';
 requires 'strict';
+requires 'strictures';
 requires 'version';
 requires 'warnings';
 

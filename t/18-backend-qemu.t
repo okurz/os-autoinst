@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
-use Test::Most;
 use Mojo::Base -strict, -signatures;
+use strictures;
+use Test::Most;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

@@ -4,6 +4,7 @@
 
 package backend::qemu;
 use Mojo::Base 'backend::virt', -signatures;
+use strictures;
 use autodie ':all';
 use File::Basename 'dirname';
 use File::Path 'mkpath';

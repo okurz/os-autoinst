@@ -5,6 +5,7 @@
 package basetest;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use autodie ':all';
 
 use bmwqemu ();

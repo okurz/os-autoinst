@@ -4,6 +4,7 @@
 package testdistribution;
 
 use Mojo::Base 'distribution', -signatures;
+use strictures;
 
 sub init ($self) {
     $self->SUPER::init();

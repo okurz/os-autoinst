@@ -4,6 +4,7 @@
 
 package backend::s390x;
 use Mojo::Base 'backend::baseclass', -signatures;
+use strictures;
 use autodie ':all';
 use English;
 require IPC::System::Simple;

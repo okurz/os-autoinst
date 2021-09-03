@@ -4,6 +4,7 @@
 
 package backend::svirt;
 use Mojo::Base 'backend::virt', -signatures;
+use strictures;
 use File::Basename;
 use File::Path 'mkpath';
 use IO::Scalar;

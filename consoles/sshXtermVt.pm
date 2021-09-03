@@ -5,6 +5,7 @@
 package consoles::sshXtermVt;
 
 use Mojo::Base 'consoles::localXvnc', -signatures;
+use strictures;
 use autodie ':all';
 use IO::Socket::INET;
 require IPC::System::Simple;

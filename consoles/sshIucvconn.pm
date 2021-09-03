@@ -7,6 +7,7 @@
 package consoles::sshIucvconn;
 
 use Mojo::Base 'consoles::network_console', -signatures;
+use strictures;
 use autodie ':all';
 
 sub connect_remote ($self, $args) {

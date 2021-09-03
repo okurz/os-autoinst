@@ -4,6 +4,7 @@
 
 package backend::ipmi;
 use Mojo::Base 'backend::baseclass', -signatures;
+use strictures;
 use autodie ':all';
 use Time::HiRes qw(sleep);
 use Time::Seconds;

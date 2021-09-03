@@ -4,6 +4,7 @@
 package consoles::ipmiSol;
 
 use Mojo::Base 'consoles::console', -signatures;
+use strictures;
 use autodie ':all';
 require IPC::System::Simple;
 use POSIX '_exit';

@@ -4,7 +4,7 @@
 
 package commands;
 
-use Mojo::Base -strict;
+use strictures;
 use autodie ':all';
 
 require IPC::System::Simple;

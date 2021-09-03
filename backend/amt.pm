@@ -4,6 +4,7 @@
 package backend::amt;
 
 use Mojo::Base 'backend::baseclass', -signatures;
+use strictures;
 use autodie ':all';
 use Time::HiRes qw(sleep gettimeofday);
 use Data::Dumper;

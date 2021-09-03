@@ -1,6 +1,8 @@
 package Perl::Critic::Policy::HashKeyQuotes;
 
 use Mojo::Base 'Perl::Critic::Policy', -signatures;
+use strictures;
+
 use Perl::Critic::Utils qw( :severities :classification :ppi );
 
 our $VERSION = '0.0.1';

@@ -1,6 +1,7 @@
 package OpenQA::Benchmark::Stopwatch;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 
 our $VERSION = '0.05';
 use Time::HiRes;

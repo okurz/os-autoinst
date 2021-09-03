@@ -5,6 +5,7 @@
 package consoles::sshVirtsh;
 
 use Mojo::Base 'consoles::sshXtermVt', -signatures;
+use strictures;
 use autodie ':all';
 require IPC::System::Simple;
 use XML::LibXML;

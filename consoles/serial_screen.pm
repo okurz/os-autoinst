@@ -3,6 +3,7 @@
 package consoles::serial_screen;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use integer;
 
 use English -no_match_vars;

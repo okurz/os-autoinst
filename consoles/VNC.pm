@@ -1,6 +1,7 @@
 package consoles::VNC;
 
 use Mojo::Base 'Class::Accessor::Fast', -signatures;
+use strictures;
 use bytes;
 use IO::Socket::INET;
 use bmwqemu qw(diag fctwarn);

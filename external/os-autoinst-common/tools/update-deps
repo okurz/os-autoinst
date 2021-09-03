@@ -1,8 +1,7 @@
 #!/usr/bin/env perl
 # Copyright 2020 SUSE LLC
 # SPDX-License-Identifier: MIT
-use strict;
-use warnings;
+use strictures;
 use 5.010;
 
 use YAML::PP;

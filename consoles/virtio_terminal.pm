@@ -3,6 +3,7 @@
 package consoles::virtio_terminal;
 
 use Mojo::Base 'consoles::console', -signatures;
+use strictures;
 use autodie;
 use Mojo::File 'path';
 use Socket qw(SOCK_NONBLOCK PF_UNIX SOCK_STREAM sockaddr_un);

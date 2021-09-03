@@ -5,6 +5,7 @@
 package consoles::s3270;
 
 use Mojo::Base 'consoles::localXvnc', -signatures;
+use strictures;
 use feature 'say';
 use Class::Accessor 'antlers';
 use Data::Dumper 'Dumper';

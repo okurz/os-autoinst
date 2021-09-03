@@ -5,6 +5,7 @@
 package backend::ikvm;
 
 use Mojo::Base 'backend::ipmi', -signatures;
+use strictures;
 use autodie ':all';
 
 sub relogin_vnc ($self) {

@@ -5,6 +5,7 @@
 package consoles::network_console;
 
 use Mojo::Base 'consoles::console', -signatures;
+use strictures;
 use Try::Tiny;
 use Scalar::Util 'blessed';
 

@@ -4,6 +4,7 @@
 package myjsonrpc;
 
 use Mojo::Base -strict, -signatures;
+use strictures;
 use Carp qw(cluck confess);
 use IO::Select;
 use Errno;

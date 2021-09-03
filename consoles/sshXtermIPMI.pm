@@ -5,6 +5,7 @@
 package consoles::sshXtermIPMI;
 
 use Mojo::Base 'consoles::localXvnc', -signatures;
+use strictures;
 use autodie ':all';
 require IPC::System::Simple;
 use File::Which;

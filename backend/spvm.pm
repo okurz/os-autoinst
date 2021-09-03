@@ -3,6 +3,7 @@
 
 package backend::spvm;
 use Mojo::Base 'backend::virt', -signatures;
+use strictures;
 
 # supporting the minimal command set of NovaLink through a ssh tunnel
 

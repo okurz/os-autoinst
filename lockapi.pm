@@ -5,6 +5,7 @@
 package lockapi;
 
 use Mojo::Base 'Exporter';
+use strictures;
 use Scalar::Util 'looks_like_number';
 use Time::Seconds;
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
