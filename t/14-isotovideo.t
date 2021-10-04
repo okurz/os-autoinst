@@ -182,6 +182,7 @@ subtest 'upload the asset even in an incomplete job' => sub {
     my $force_publish_asset = $pool_dir . '/assets_public/force_publish_test.qcow2';
     ok(-e $force_publish_asset, 'test.qcow2 image exists');
     ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
+    is -s $force_publish_asset, 42, 'asset has correct size';
 };
 
 done_testing();
