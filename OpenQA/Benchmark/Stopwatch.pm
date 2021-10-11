@@ -236,9 +236,7 @@ sub as_data ($self) {
     return \%data;
 }
 
-sub time {
-    &{$_[0]{_time}};
-}
+sub time ($arg) { &{$arg{_time}} }
 
 =head1 AUTHOR
 
