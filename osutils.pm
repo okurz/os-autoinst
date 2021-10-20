@@ -3,7 +3,7 @@
 
 package osutils;
 
-use Mojo::Base 'Exporter';
+use Mojo::Base 'Exporter', -signatures;
 use Carp;
 use List::Util 'first';
 use Mojo::File 'path';
@@ -24,10 +24,7 @@ our @EXPORT_OK = qw(
 
 # An helper to lookup into a folder and find an executable file between given candidates
 # First argument is the directory, the remainining are the candidates.
-sub find_bin {
-    my ($dir, @candidates) = @_;
-    return first { -e && -x } map { path($dir, $_) } @candidates;
-}
+sub find_bin ($dir, @candidates) { first { -e && -x } map { path($dir, $_) } @candidates }
 
 # An helper to full a parameter list, typically used to build option arguments for executing external programs.
 # mimics perl's push, this why it's a prototype: first argument is the array, second is the argument option and the third is the parameter.
@@ -35,9 +32,7 @@ sub find_bin {
 # and if parameter should not be quoted, for that one can use no_quotes. NOTE: this is applicable for string parameters only.
 # if the parameter is equal to "", the value is not pushed to the array.
 # For example: gen_params \@params, 'device', 'scsi', prefix => '--', no_quotes => 1;
-sub gen_params(\@$$;%) {
-    my ($array, $argument, $parameter, %args) = @_;
-
+sub gen_params ($array, $argument, $parameter, %args) {
     return unless ($parameter);
     $args{prefix} = "-" unless $args{prefix};
 
@@ -52,42 +47,33 @@ sub gen_params(\@$$;%) {
 }
 
 # doubledash shortcut version. Same can be achieved with gen_params.
-sub dd_gen_params(\@$$) {
-    my ($array, $argument, $parameter) = @_;
+sub dd_gen_params ($array, $argument, $parameter) :prototype(\@$$) {
     gen_params(@{$array}, $argument, $parameter, prefix => "--");
 }
 
 # It merely splits a string into pieces interpolating variables inside it.
 # e.g.  gen_params @params, 'drive', "file=$basedir/l$i,cache=unsafe,if=none,id=hd$i,format=$vars->{HDDFORMAT}" can be rewritten as
 #       gen_params @params, 'drive', [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT}"]
-sub qv($) {
-    split /\s+|\h+|\r+/, $_[0];
-}
+sub qv ($string) { split /\s+|\h+|\r+/, $string }
 
 # Add single quote mark to string
 # Mainly use in the case of multiple kernel parameters to be passed to the -append option
 # and they need to be quoted using single or double quotes
-sub quote {
-    "\'" . $_[0] . "\'";
-}
+sub quote ($string) { "\'" . $string . "\'" }
 
-sub run {
-    my @cmd = @_;
-
-    bmwqemu::diag "running `@cmd`";
-    my $p = process(execute => shift @cmd, args => [@cmd]);
+sub run (@args) {
+    bmwqemu::diag "running `@args`";
+    my $p = process(execute => shift @args, args => [@args]);
     $p->quirkiness(1)->separate_err(0)->start()->wait_stop();
 
     my $stdout = join('', $p->read_stream->getlines());
     chomp $stdout;
-
     close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
-
     return $p->exit_status, $stdout;
 }
 
 # Do not check for anything - just execute and print
-sub run_diag {
+sub run_diag (@args) {
     my ($exit_status, $output);
     eval {
         local $SIG{__DIE__} = undef;
@@ -99,8 +85,7 @@ sub run_diag {
 }
 
 # Open a process to run external program and check its return status
-sub runcmd {
-    my (@cmd) = @_;
+sub runcmd (@cmd) {
     my ($e, $out) = run(@cmd);
     bmwqemu::diag $out if $out && length($out) > 0;
     die "runcmd '" . join(' ', @cmd) . "' failed with exit code $e" . ($out ? ": '$out'" : '') unless $e == 0;
@@ -109,13 +94,13 @@ sub runcmd {
 
 ## use critic
 
-sub wait_attempt {
+sub wait_attempt () {
     sleep($ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} // 1);
 }
 
-sub attempt {
+sub attempt ($arg) {
     my $attempts = 0;
-    my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
+    my ($total_attempts, $condition, $cb, $or) = ref $arg eq 'HASH' ? (@{$arg}{qw(attempts condition cb or)}) : @_;
     until ($condition->() || $attempts >= $total_attempts) {
         bmwqemu::diag "Waiting for $attempts attempts";
         $cb->();
