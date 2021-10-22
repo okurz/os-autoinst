@@ -6,21 +6,34 @@ use Mojo::File 'path';
 use Getopt::Long::Descriptive;
 
 
+sub evaluate_total ($threshold, @log) {
+    my @summary = grep { /Total/ } @log;
+    chomp @summary;
+    my $summary_line = $summary[0];
+
+    my @matches = $summary_line =~ /(?<=>)[0-9.]+(?=<)/g;
+    die "No coverage found" unless scalar @matches > 0;
+    die "Coverage is below threshold: $matches[-1] < " . $threshold if $threshold && ($matches[-1] < $threshold);
+}
+
+sub evaluate_folder($folder, $threshold, @log) {
+    my @matches = grep { qr/$folder/ } @log;
+
+    die "HERE @matches";
+}
+
 my ($opt, $usage) = describe_options(
     '%c %o',
     ['threshold|t=f', 'Threshold to compare statement coverage against', { required => 1}],
+    ['folder|f=s', 'Folder regex to check statement coverage threshold against (by default total is checked)'],
     ['help|h',   'This help message', {shortcircuit => 1}],
 );
 print($usage->text), exit if $opt->help;
-
 my $filename = 'cover_db/coverage.html';
 my @log = split /\n/, path($filename)->slurp;
-my @summary = grep { /Total/ } @log;
-chomp @summary;
-my $summary_line = $summary[0];
-
-my @matches = $summary_line =~ /(?<=>)[0-9.]+(?=<)/g;
-# for now just compare the last number, i.e. the total coverage against a
-# threshold
-die "No coverage found" unless scalar @matches > 0;
-die "Coverage is below threshold: $matches[-1] < " . $opt->threshold if ($matches[-1] < $opt->threshold);
+if ($opt->folder) {
+    evaluate_folder($opt->folder, $opt->threshold, @log);
+}
+else {
+    evaluate_total($opt->threshold, @log);
+}
