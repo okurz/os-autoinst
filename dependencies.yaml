@@ -219,6 +219,7 @@ main_requires:
   perl(File::Path):
   perl(File::Temp):
   perl(File::Which):
+  perl(Getopt::Long::Descriptive):
   perl(IO::Handle):
   perl(IO::Scalar):
   perl(IO::Select):
