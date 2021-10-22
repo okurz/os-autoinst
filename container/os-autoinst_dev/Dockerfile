@@ -101,6 +101,7 @@ RUN zypper in -y -C \
        'perl(File::Which)' \
        'perl(File::chdir)' \
        'perl(FindBin)' \
+       'perl(Getopt::Long::Descriptive)' \
        'perl(IO::Handle)' \
        'perl(IO::Scalar)' \
        'perl(IO::Select)' \

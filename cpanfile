@@ -28,6 +28,7 @@ requires 'File::Path';
 requires 'File::Temp';
 requires 'File::Which';
 requires 'File::chdir';
+requires 'Getopt::Long::Descriptive';
 requires 'IO::Handle';
 requires 'IO::Scalar';
 requires 'IO::Select';

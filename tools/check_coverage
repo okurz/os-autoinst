@@ -3,9 +3,15 @@
 use Mojo::Base -strict, -signatures;
 use autodie;
 use Mojo::File 'path';
+use Getopt::Long::Descriptive;
 
 
-die 'Need threshold as argument' unless @ARGV;
+my ($opt, $usage) = describe_options(
+    '%c %o',
+    ['threshold|t=f', 'Threshold to compare statement coverage against', { required => 1}],
+    ['help|h',   'This help message', {shortcircuit => 1}],
+);
+print($usage->text), exit if $opt->help;
 
 my $filename = 'cover_db/coverage.html';
 my @log = split /\n/, path($filename)->slurp;
@@ -16,5 +22,5 @@ my $summary_line = $summary[0];
 my @matches = $summary_line =~ /(?<=>)[0-9.]+(?=<)/g;
 # for now just compare the last number, i.e. the total coverage against a
 # threshold
-die 'No coverage found' unless scalar @matches > 0;
-die "Coverage is below threshold: $matches[-1] < $ARGV[0]" if ($matches[-1] < $ARGV[0]);
+die "No coverage found" unless scalar @matches > 0;
+die "Coverage is below threshold: $matches[-1] < " . $opt->threshold if ($matches[-1] < $opt->threshold);
