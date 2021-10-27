@@ -14,8 +14,7 @@ use Cwd 'abs_path';
 use Mojo::File qw(tempdir path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
-use OpenQA::Isotovideo::Utils qw(handle_generated_assets);
-use OpenQA::Isotovideo::CommandHandler;
+use bmwqemu;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
@@ -147,41 +146,6 @@ subtest 'load test success when casedir and productdir are relative path' => sub
     my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
     like $log, qr/scheduling failing_module/, 'schedule can still be found';
     like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
-};
-
-
-# mock backend/driver
-{
-    package FakeBackendDriver;
-    sub new {
-        my ($class, $name) = @_;
-        my $self = bless({class => $class}, $class);
-        require "backend/$name.pm";
-        $self->{backend} = "backend::$name"->new();
-        return $self;
-    }
-    sub extract_assets {
-        my $self = shift;
-        $self->{backend}->do_extract_assets(@_);
-    }
-}
-
-subtest 'upload the asset even in an incomplete job' => sub {
-    my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
-    $bmwqemu::vars{BACKEND} = 'qemu';
-    $bmwqemu::vars{NUMDISKS} = 1;
-    $bmwqemu::vars{FORCE_PUBLISH_HDD_1} = 'force_publish_test.qcow2';
-    $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
-    $command_handler->test_completed(0);
-    $bmwqemu::backend = FakeBackendDriver->new('qemu');
-    my $return_code;
-    combined_like {
-        $return_code = handle_generated_assets($command_handler, 1)
-    } qr/Requested to force the publication/, 'forced publication of asset';
-    is $return_code, 0, 'The asset was uploaded successfully' or die path(bmwqemu::STATE_FILE)->slurp;
-    my $force_publish_asset = $pool_dir . '/assets_public/force_publish_test.qcow2';
-    ok(-e $force_publish_asset, 'test.qcow2 image exists');
-    ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
 };
 
 done_testing();
