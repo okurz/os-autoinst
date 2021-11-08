@@ -4,7 +4,7 @@ package consoles::serial_screen;
 
 use Mojo::Base -strict, -signatures;
 use integer;
-
+use bmwqemu ();
 use English -no_match_vars;
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use Carp 'croak';
