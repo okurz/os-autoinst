@@ -153,6 +153,7 @@ sub image_exists ($img, $size) {
 sub start_lpar ($self) {
     my $vars = \%bmwqemu::vars;
     #general settiings
+    die 'Need test variable \'WORKER_ID\'' unless $vars->{WORKER_ID};
     $vars->{LPAR} = "osauto" . $vars->{WORKER_ID};
     $vars->{CPUS} ||= 1;
     $vars->{MEM} ||= "2048";
