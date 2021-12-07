@@ -34,9 +34,9 @@ is(my $last_thread_count = thread_count, 1, 'initially one thread');
 # Note that without these handlers, there won't be any crash in Perl's signal handler as it's never
 # registered for those signals.
 my $received_sigterm = 0;
-$SIG{TERM} = sub { $received_sigterm += 1; note "received SIGTERM $received_sigterm"; };
+#$SIG{TERM} = sub { $received_sigterm += 1; note "received SIGTERM $received_sigterm"; };
 my $received_sigchld = 0;
-$SIG{CHLD} = sub { $received_sigchld += 1; note "received SIGCHLD $received_sigchld"; };
+#$SIG{CHLD} = sub { $received_sigchld += 1; note "received SIGCHLD $received_sigchld"; };
 
 # initialize OpenCV via signalblocker and create_threads
 {
@@ -51,6 +51,7 @@ $SIG{CHLD} = sub { $received_sigchld += 1; note "received SIGCHLD $received_sigc
     note "threads used: $thread_count_for_testing of $thread_count";
 
     tinycv::create_threads($thread_count_for_testing);
+    #sleep 10;
     $last_thread_count = thread_count;
     cmp_ok($last_thread_count, '>=', $thread_count_for_testing, "at least $thread_count_for_testing threads created");
 }
@@ -78,5 +79,8 @@ cmp_ok(system("true"), '==', 0, 'system returns exit status');
 is($received_sigchld, 1, 'got SIGCHLD after system');
 
 cmp_ok(thread_count, '<=', $last_thread_count, 'still no new threads after sending signals');
+
+END {
+}
 
 done_testing;

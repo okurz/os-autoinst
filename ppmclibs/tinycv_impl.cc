@@ -360,10 +360,10 @@ void create_opencv_threads(int thread_count)
     std::mutex m;
     std::condition_variable cv;
     int threads_spawned = 0;
-    parallel_for_(Range(0, thread_count), RunFunctionInParallel([&] (const Range &) {
+    parallel_for_(Range(0, 100), RunFunctionInParallel([&] (const Range &) {
         // keep the thread idling until the expected number of threads has been spawned
         std::unique_lock<std::mutex> lock(m);
-        if (++threads_spawned >= thread_count) {
+        if (++threads_spawned >= 100) {
             cv.notify_all(); // note: The last thread releases all previously spawned threads.
         } else {
             cv.wait(lock);
