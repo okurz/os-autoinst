@@ -26,8 +26,8 @@ mkdir $pool_dir;
 note("data dir: $data_dir");
 note("pool dir: $pool_dir");
 
-chdir($pool_dir);
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir($pool_dir);
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 path('vars.json')->spurt(<<EOV);
 {

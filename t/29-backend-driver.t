@@ -18,8 +18,8 @@ use log qw(logger);
 use backend::driver;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir $dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 my (@diag, @fctinfo);
 my $mocklog = Test::MockModule->new('backend::driver');

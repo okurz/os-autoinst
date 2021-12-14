@@ -16,8 +16,8 @@ use OpenQA::Test::TimeLimit '5';
 use backend::pvm;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir $dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 my $mock = Test::MockModule->new('backend::pvm');
 $mock->redefine(_masterlpar => '42');

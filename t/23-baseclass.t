@@ -21,8 +21,8 @@ use IO::Pipe;
 use bmwqemu ();
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir $dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir 'testresults';
 
 # make the test time-zone neutral

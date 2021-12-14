@@ -16,9 +16,9 @@ use bmwqemu;
 use distribution;
 use backend::spvm;
 
-my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+#chdir $dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
 my $backend = backend::spvm->new;

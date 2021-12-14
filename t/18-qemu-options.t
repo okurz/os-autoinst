@@ -21,8 +21,8 @@ my $toplevel_dir = "$Bin/..";
 my $data_dir = "$Bin/data";
 my $pool_dir = "$dir/pool";
 mkdir $pool_dir;
-chdir $pool_dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir $pool_dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 # just save ourselves some time during testing
 # note: The factor for coverage has been determined by comparing runtimes locally and was rounded up to the next integer.

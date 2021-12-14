@@ -22,8 +22,8 @@ my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir = "$toplevel_dir/t/data";
 my $pool_dir = "$dir/pool";
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir $dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
 
 sub isotovideo (%args) {
@@ -49,13 +49,13 @@ subtest 'get the version number' => sub {
 };
 
 subtest 'standalone isotovideo without vars.json file and only command line parameters' => sub {
-    chdir($pool_dir);
+    #chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(opts => "casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") } qr{scheduling.+(foo|bar/baz)}, 'requested modules scheduled';
 };
 
 subtest 'standard tests based on simple vars.json file' => sub {
-    chdir($pool_dir);
+    #chdir($pool_dir);
     open(my $var, '>', 'vars.json');
     print $var <<EOV;
 {
@@ -68,7 +68,7 @@ EOV
 };
 
 subtest 'isotovideo with custom git repo parameters specified' => sub {
-    chdir($pool_dir);
+    #chdir($pool_dir);
     my $base_state = path(bmwqemu::STATE_FILE);
     $base_state->remove if -e $base_state;
     path('vars.json')->remove if -e 'vars.json';
@@ -99,14 +99,14 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
 };
 
 subtest 'isotovideo with git refspec specified' => sub {
-    chdir($pool_dir);
+    #chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests test_git_refspec=deadbeef _exit_after_schedule=1") } qr/Checking.*local.*deadbeef/, 'refspec in local git repository would be checked out';
 };
 
 subtest 'productdir variable relative/absolute' => sub {
-    chdir($pool_dir);
+    #chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=$data_dir/tests") } qr/\d* scheduling.*shutdown/, 'schedule has been evaluated';
@@ -124,7 +124,7 @@ subtest 'productdir variable relative/absolute' => sub {
 };
 
 subtest 'upload assets on demand even in failed jobs' => sub {
-    chdir($pool_dir);
+    #chdir($pool_dir);
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
     path('vars.json')->remove if -e 'vars.json';
     my $module = 'tests/failing_module';
@@ -137,7 +137,7 @@ subtest 'upload assets on demand even in failed jobs' => sub {
 };
 
 subtest 'load test success when casedir and productdir are relative path' => sub {
-    chdir($pool_dir);
+    #chdir($pool_dir);
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
     path('vars.json')->remove if -e 'vars.json';
     mkdir('my_cases') unless -e 'my_cases';
@@ -155,7 +155,7 @@ subtest 'load test success when casedir and productdir are relative path' => sub
 
 # mock backend/driver
 {
-    package FakeBackendDriver;
+    package FakeBackendDriver;  # uncoverable statement
     sub new ($class, $name) {
         my $self = bless({class => $class}, $class);
         require "backend/$name.pm";

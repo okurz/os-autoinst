@@ -25,8 +25,8 @@ sub backend () {
 }
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir $dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 my $proc = Test::MockModule->new('OpenQA::Qemu::Proc');
 $proc->redefine(exec_qemu => undef);

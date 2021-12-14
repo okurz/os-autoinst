@@ -21,8 +21,8 @@ use OpenQA::Qemu::Proc;
 use constant TMPPATH => '/tmp/18-qemu.t/';
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir $dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir "$dir/testresults";
 
 $SIG{__DIE__} = sub { cluck(shift); };

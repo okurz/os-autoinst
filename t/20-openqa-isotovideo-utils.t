@@ -16,12 +16,12 @@ use OpenQA::Isotovideo::Utils qw(load_test_schedule);
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $pool_dir = "$dir/pool";
-chdir $dir;
-my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+#chdir $dir;
+#my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
 
 subtest 'error handling when loading test schedule' => sub {
-    chdir($dir);
+    #chdir($dir);
     my $base_state = path(bmwqemu::STATE_FILE);
     subtest 'no schedule at all' => sub {
         $base_state->remove;
