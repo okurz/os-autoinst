@@ -542,6 +542,9 @@ sub close_pipes ($self) {
     bmwqemu::diag "sending magic and exit";
     myjsonrpc::send_json($self->{rsppipe}, {QUIT => 1});
     close($self->{rsppipe}) || die "close $!\n";
+    use FindBin '$Bin';
+    no autodie qw(chdir);
+    chdir $Bin;
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }

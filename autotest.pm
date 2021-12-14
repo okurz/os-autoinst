@@ -225,6 +225,8 @@ sub load_snapshot ($sname) {
 
 sub _terminate () {
     close $isotovideo;    # uncoverable statement
+    use FindBin '$Bin';
+    chdir $Bin;
     Devel::Cover::report() if Devel::Cover->can('report');    # uncoverable statement
     _exit(0);    # uncoverable statement
 }

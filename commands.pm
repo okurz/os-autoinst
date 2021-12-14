@@ -308,6 +308,8 @@ sub start_server ($port) {
             close($child);
             $0 = "$0: commands";
             run_daemon($port, $isotovideo);
+            use FindBin '$Bin';
+            chdir("$Bin");
             Devel::Cover::report() if Devel::Cover->can('report');
             _exit(0);
         },
