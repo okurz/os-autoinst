@@ -28,6 +28,7 @@ use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use Mojo::Server::Daemon;
 use File::Basename;
 use Time::HiRes 'gettimeofday';
+use Mojo::Base -strict, -signatures;
 
 # borrowed from obs with permission from mls@suse.de to license as
 # GPLv2+
