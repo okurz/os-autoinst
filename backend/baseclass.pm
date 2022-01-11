@@ -264,6 +264,7 @@ sub run_capture_loop ($self, $timeout = undef) {
     $self->last_screenshot($starttime) unless $self->last_screenshot;
 
     eval { $self->do_capture($timeout, $starttime) };
+    Devel::Cover::report() if Devel::Cover->can('report');
     return unless $@;
     bmwqemu::fctwarn "capture loop failed $@";
     $self->close_pipes();

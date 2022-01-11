@@ -604,6 +604,8 @@ sub init_x11_keymap ($self) {
 }
 
 sub init_ikvm_keymap ($self) {
+    use Carp qw(confess);
+    confess "HERE in init_ikvm_keymap, is this even called? if yes from where?";
     return if $self->keymap;
     my %keymap = %$keymap_ikvm;
     for my $key ("a" .. "z") {
@@ -673,6 +675,8 @@ sub map_and_send_key ($self, $keys, $down_flag, $press_release_delay) {
 }
 
 sub send_pointer_event ($self, $button_mask, $x, $y) {
+    use Carp qw(confess);
+    confess "HERE in send_pointer_event, is this even called? if yes from where?";
     bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
     my $template = 'CCnn';
