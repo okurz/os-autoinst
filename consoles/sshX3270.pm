@@ -7,7 +7,7 @@ package consoles::sshX3270;
 use Mojo::Base 'consoles::localXvnc', -signatures;
 
 sub activate ($self) {
-    my $sshcommand = $self->sshCommand('root', $bmwqemu::vars{PARMFILE}->{Hostname});
+    my $sshcommand = $self->sshCommand('root', $tiedvars::vars{PARMFILE}->{Hostname});
     my $display = $self->{backend}->{consoles}->{worker}->{DISPLAY};
     my $sshpassword = $testapi::password;
 

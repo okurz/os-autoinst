@@ -27,11 +27,11 @@ has current_api_function => undef;
 has status => 'initial';
 
 # conditions when to pause
-has pause_test_name => sub { $bmwqemu::vars{PAUSE_AT} };
+has pause_test_name => sub { $tiedvars::vars{PAUSE_AT} };
 # (set to name of a certain test module, with or without category)
-has pause_on_screen_mismatch => sub { $bmwqemu::vars{PAUSE_ON_SCREEN_MISMATCH} };
+has pause_on_screen_mismatch => sub { $tiedvars::vars{PAUSE_ON_SCREEN_MISMATCH} };
 # (set to 'assert_screen' or 'check_screen' where 'check_screen' includes 'assert_screen')
-has pause_on_next_command => sub { $bmwqemu::vars{PAUSE_ON_NEXT_COMMAND} // 0 };
+has pause_on_next_command => sub { $tiedvars::vars{PAUSE_ON_NEXT_COMMAND} // 0 };
 # (set to 0 or 1)
 
 # the reason why the test execution has paused or 0 if not paused
@@ -317,8 +317,8 @@ sub _handle_command_status ($self, $response, @) {
 
 sub _handle_command_version ($self, $response, @) {
     $self->_respond({
-            test_git_hash => $bmwqemu::vars{TEST_GIT_HASH},
-            needles_git_hash => $bmwqemu::vars{NEEDLES_GIT_HASH},
+            test_git_hash => $tiedvars::vars{TEST_GIT_HASH},
+            needles_git_hash => $tiedvars::vars{NEEDLES_GIT_HASH},
             version => $OpenQA::Isotovideo::Interface::version,
     });
 }

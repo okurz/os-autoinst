@@ -18,8 +18,8 @@ has openqa_url => sub {
     # deduce the default openQA URL from OPENQA_URL/OPENQA_HOSTNAME
     # note: OPENQA_URL is sometimes just the hostname (eg. e212.suse.de) but might be a proper URL
     #       as well (eg. http://openqa1-opensuse).
-    my $url = Mojo::URL->new($bmwqemu::vars{OPENQA_URL});
-    my $host = $bmwqemu::vars{OPENQA_HOSTNAME};
+    my $url = Mojo::URL->new($tiedvars::vars{OPENQA_URL});
+    my $host = $tiedvars::vars{OPENQA_HOSTNAME};
 
     # determine host if not present in OPENQA_URL
     if (!$url->host) {

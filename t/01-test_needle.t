@@ -15,8 +15,8 @@ use File::Temp qw(tempdir);
 use Mojo::File qw(path);
 
 BEGIN {
-    $bmwqemu::vars{DISTRI} = "unicorn";
-    $bmwqemu::vars{CASEDIR} = "/var/lib/empty";
+    $tiedvars::vars{DISTRI} = "unicorn";
+    $tiedvars::vars{CASEDIR} = "/var/lib/empty";
 }
 
 use needle;
@@ -51,7 +51,7 @@ my ($res, $needle, $img1, $cand);
 my $data_dir = dirname(__FILE__) . '/data/';
 my $misc_needles_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
 
-$bmwqemu::vars{NEEDLES_DIR} = $data_dir;
+$tiedvars::vars{NEEDLES_DIR} = $data_dir;
 needle_init;
 
 $img1 = tinycv::read($data_dir . 'bootmenu.test.png');
@@ -404,10 +404,10 @@ is($other_needle->get_image, $img2, 'cleaning cache to keep 1 image kept $img2')
 ok($needle->get_image != $img1, 'cleaning cache to keep 1 image deleted $img1');
 is($needle->{file}, 'other-desktop-dvd-20140904.json', 'needle json path is relative to needles dir');
 
-subtest 'needle::init accepts custom NEEDLES_DIR within working directory and otherwise falls back to "$bmwqemu::vars{PRODUCTDIR}/needles"' => sub {
+subtest 'needle::init accepts custom NEEDLES_DIR within working directory and otherwise falls back to "$tiedvars::vars{PRODUCTDIR}/needles"' => sub {
     # create temporary working directory and a needle directory within it
     my $temp_working_dir = tempdir(CLEANUP => 1);
-    my $needles_dir = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
+    my $needles_dir = $tiedvars::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
     make_path("$needles_dir/subdir");
     for my $extension (qw(json png)) {
         path($misc_needles_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
@@ -416,7 +416,7 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
     subtest 'custom NEEDLES_DIR used when within working directory' => sub {
         note("using working directory $temp_working_dir");
         chdir($temp_working_dir);
-        $bmwqemu::vars{NEEDLES_DIR} = $needles_dir;
+        $tiedvars::vars{NEEDLES_DIR} = $needles_dir;
         is(needle_init, $needles_dir, 'custom needle dir accepted');
 
         ok($needle = needle->new('subdir/foo.json'), 'needle object created with needle from working directory');
@@ -468,12 +468,12 @@ subtest 'workaround property' => sub {
 };
 
 subtest 'clarify error message when needles directory does not exist' => sub {
-    $bmwqemu::vars{CASEDIR} = '/tmp/foo';
-    $bmwqemu::vars{PRODUCTDIR} = '/tmp/boo/products/boo';
-    $bmwqemu::vars{NEEDLES_DIR} = undef;
+    $tiedvars::vars{CASEDIR} = '/tmp/foo';
+    $tiedvars::vars{PRODUCTDIR} = '/tmp/boo/products/boo';
+    $tiedvars::vars{NEEDLES_DIR} = undef;
     throws_ok { needle::init } qr/Can't init needles from \/tmp\/boo\/products\/boo\/needles at.*/, 'do not combine CASEDIR when the default needles directory is an absolute path';
 
-    $bmwqemu::vars{PRODUCTDIR} = 'boo/products/boo';
+    $tiedvars::vars{PRODUCTDIR} = 'boo/products/boo';
     throws_ok { needle::init } qr/Can't init needles from boo\/products\/boo\/needles;.*\/tmp\/foo\/boo\/products\/boo\/needles/, 'combine CASEDIR when the default needles directory is a relative path';
 };
 

@@ -167,10 +167,10 @@ subtest 'load test success when casedir and productdir are relative path' => sub
 
 subtest 'upload the asset even in an incomplete job' => sub {
     my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
-    $bmwqemu::vars{BACKEND} = 'qemu';
-    $bmwqemu::vars{NUMDISKS} = 1;
-    $bmwqemu::vars{FORCE_PUBLISH_HDD_1} = 'force_publish_test.qcow2';
-    $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
+    $tiedvars::vars{BACKEND} = 'qemu';
+    $tiedvars::vars{NUMDISKS} = 1;
+    $tiedvars::vars{FORCE_PUBLISH_HDD_1} = 'force_publish_test.qcow2';
+    $tiedvars::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
     $command_handler->test_completed(0);
     $bmwqemu::backend = FakeBackendDriver->new('qemu');
     my $return_code;

@@ -14,12 +14,12 @@ sub new ($class) {
 
 sub relogin_vnc ($self) {
     my $vncopts = {
-        hostname => $bmwqemu::vars{IPMI_HOSTNAME},
+        hostname => $tiedvars::vars{IPMI_HOSTNAME},
         port => 5900,
-        username => $bmwqemu::vars{IPMI_USER},
-        password => $bmwqemu::vars{IPMI_PASSWORD},
+        username => $tiedvars::vars{IPMI_USER},
+        password => $tiedvars::vars{IPMI_PASSWORD},
     };
-    my $hwclass = $bmwqemu::vars{IPMI_HW} || 'supermicro';
+    my $hwclass = $tiedvars::vars{IPMI_HW} || 'supermicro';
     $vncopts->{ikvm} = 1 if $hwclass eq 'supermicro';
     if ($hwclass eq 'dell') {
         $vncopts->{dell} = 1;

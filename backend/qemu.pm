@@ -129,7 +129,7 @@ sub _dbus_call ($self, $fn, @args) {
     my $error = $@;
     if ($error) {
         my $msg = "Open vSwitch command '$fn' with arguments '@args' failed: $error";
-        die "$msg\n" unless $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL};
+        die "$msg\n" unless $tiedvars::vars{QEMU_NON_FATAL_DBUS_CALL};
         bmwqemu::diag $msg;
     }
     return ($rt, $message, ($error) x !!($error));
@@ -138,7 +138,7 @@ sub _dbus_call ($self, $fn, @args) {
 sub do_stop_vm ($self, @) {
 
     my $proc = $self->{proc};
-    if ($bmwqemu::vars{QEMU_WAIT_FINISH}) {
+    if ($tiedvars::vars{QEMU_WAIT_FINISH}) {
         # wait until QEMU finishes on its own; used in t/18-qemu-options.t
         if (my $qemu_pid = $proc->qemu_pid) {
             waitpid $qemu_pid, 0;
@@ -149,7 +149,7 @@ sub do_stop_vm ($self, @) {
 }
 
 sub can_handle ($self, $args) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
 
     return unless $args->{function} eq 'snapshots';
     return if $vars->{QEMU_DISABLE_SNAPSHOTS};
@@ -206,7 +206,7 @@ sub _wait_for_migrate ($self) {
     my $execution_time = gettimeofday;
     # We need to wait for qemu, since it will not honor timeouts
     # 240 seconds should be ok for 4GB
-    my $max_execution_time = $bmwqemu::vars{QEMU_MAX_MIGRATION_TIME} // 240;
+    my $max_execution_time = $tiedvars::vars{QEMU_MAX_MIGRATION_TIME} // 240;
     my $rsp;
 
     do {
@@ -288,7 +288,7 @@ sub switch_network ($self, $args) {
 
 sub save_memory_dump ($self, $args) {
     my $fdname = 'dumpfd';
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     my $compress_method = $vars->{QEMU_DUMP_COMPRESS_METHOD} || 'xz';
     my $compress_level = $vars->{QEMU_COMPRESS_LEVEL} || 6;
     my $compress_threads = $vars->{QEMU_COMPRESS_THREADS} || $vars->{QEMUCPUS} || 2;
@@ -338,7 +338,7 @@ sub save_storage_drives ($self, $args) {
 }
 
 sub inflate_balloon ($self) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     return unless $vars->{QEMU_BALLOON_TARGET};
     my $target_bytes = $vars->{QEMU_BALLOON_TARGET} * 1048576;
     $self->handle_qmp_command({execute => 'balloon', arguments => {value => $target_bytes}}, fatal => 1);
@@ -355,14 +355,14 @@ sub inflate_balloon ($self) {
 }
 
 sub deflate_balloon ($self) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     return unless $vars->{QEMU_BALLOON_TARGET};
     my $ram_bytes = $vars->{QEMURAM} * 1048576;
     $self->handle_qmp_command({execute => 'balloon', arguments => {value => $ram_bytes}}, fatal => 1);
 }
 
 sub save_snapshot ($self, $args) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     my $vmname = $args->{name};
     my $bdc = $self->{proc}->blockdev_conf;
 
@@ -476,7 +476,7 @@ sub do_extract_assets ($self, $args) {
     $self->{proc}->load_state() unless $self->{proc}->has_state();
     mkpath($img_dir);
     bmwqemu::fctinfo("Extracting $pattern");
-    my $qemu_compress_qcow = $bmwqemu::vars{QEMU_COMPRESS_QCOW2} // 1;
+    my $qemu_compress_qcow = $tiedvars::vars{QEMU_COMPRESS_QCOW2} // 1;
     my $res = $self->{proc}->export_blockdev_images($pattern, $img_dir, $name, $qemu_compress_qcow);
     die "Expected one drive to be exported, not $res" if $res != 1;
 }
@@ -486,8 +486,8 @@ sub do_extract_assets ($self, $args) {
 sub find_ovmf () { first { -e } @bmwqemu::ovmf_locations }
 
 sub virtio_console_names () {
-    return () unless $bmwqemu::vars{VIRTIO_CONSOLE};
-    return map { 'virtio_console' . ($_ || '') } (0 .. ($bmwqemu::vars{VIRTIO_CONSOLE_NUM} // 1));
+    return () unless $tiedvars::vars{VIRTIO_CONSOLE};
+    return map { 'virtio_console' . ($_ || '') } (0 .. ($tiedvars::vars{VIRTIO_CONSOLE_NUM} // 1));
 }
 
 sub virtio_console_fifo_names () { map { $_ . '.in', $_ . '.out' } virtio_console_names }
@@ -502,7 +502,7 @@ sub create_virtio_console_fifo () { console_fifo($_) for virtio_console_fifo_nam
 sub delete_virtio_console_fifo () { unlink $_ or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
 
 sub qemu_params_ofw ($self) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     $vars->{QEMUVGA} ||= "std";
     $vars->{QEMUMACHINE} //= "usb=off";
     sp('g', '1024x768');
@@ -516,7 +516,7 @@ sub qemu_params_ofw ($self) {
 }
 
 sub setup_tpm ($self, $arch) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     return unless ($vars->{QEMUTPM});
     my $tpmn = $vars->{QEMUTPM} eq 'instance' ? $vars->{WORKER_INSTANCE} : $vars->{QEMUTPM};
     my $vmpath = ($vars->{QEMUTPM_PATH_PREFIX} // '/tmp/mytpm') . $tpmn;
@@ -549,7 +549,7 @@ sub setup_tpm ($self, $arch) {
 }
 
 sub start_qemu ($self) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
 
     my $basedir = path('raid')->to_abs;
     my $qemubin = $ENV{QEMU};
@@ -930,7 +930,7 @@ sub start_qemu ($self) {
         {
             hostname => 'localhost',
             connect_timeout => 3,
-            port => 5900 + $bmwqemu::vars{VNC},
+            port => 5900 + $tiedvars::vars{VNC},
             description => "QEMU's VNC"});
 
     $vnc->backend($self);
@@ -962,7 +962,7 @@ sub start_qemu ($self) {
         }
     }
 
-    if ($bmwqemu::vars{DELAYED_START}) {
+    if ($tiedvars::vars{DELAYED_START}) {
         bmwqemu::diag("DELAYED_START set, not starting CPU, waiting for resume_vm()");
     }
     else {
@@ -988,7 +988,7 @@ sub handle_qmp_command ($self, $cmd, %optargs) {
     my $sk = $self->{qmpsocket};
 
     my $line = Mojo::JSON::to_json($cmd) . "\n";
-    if ($bmwqemu::vars{QEMU_ONLY_EXEC}) {
+    if ($tiedvars::vars{QEMU_ONLY_EXEC}) {
         bmwqemu::fctinfo("Skipping the following qmp_command because QEMU_ONLY_EXEC is enabled:\n$line");
         return undef;
     }

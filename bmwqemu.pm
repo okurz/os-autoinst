@@ -83,7 +83,7 @@ sub load_vars () {
     eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>); };
     die "parse error in vars.json:\n$@" if $@;
     close($fh);
-    %common::vars = %{$ret};
+    %tiedvars::vars = %{$ret};
     return;
 }
 
@@ -94,10 +94,10 @@ sub save_vars (%args) {
     flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
     truncate($fd, 0)    or die "cannot truncate vars.json: $!\n";
 
-    my $write_vars = \%common::vars;
+    my $write_vars = \%tiedvars::vars;
     if ($args{no_secret}) {
         $write_vars = {};
-        $write_vars->{$_} = $vars{$_} for (grep !/(^_SECRET_|_PASSWORD)/, keys(%common::vars));
+        $write_vars->{$_} = $tiedvars::vars{$_} for (grep !/(^_SECRET_|_PASSWORD)/, keys(%tiedvars::vars));
     }
 
     # make sure the JSON is sorted
@@ -115,7 +115,7 @@ our $scriptdir;
 sub init () {
     load_vars();
 
-    $common::vars{BACKEND} ||= "qemu";
+    $tiedvars::vars{BACKEND} ||= "qemu";
 
     # remove directories for asset upload
     remove_tree("assets_public");
@@ -129,12 +129,12 @@ sub init () {
 }
 
 sub _check_publish_vars () {
-    return 0 unless my $nd = $common::vars{NUMDISKS};
-    my @hdds = map { $common::vars{"HDD_$_"} } 1 .. $nd;
+    return 0 unless my $nd = $tiedvars::vars{NUMDISKS};
+    my @hdds = map { $tiedvars::vars{"HDD_$_"} } 1 .. $nd;
     for my $i (1 .. $nd) {
         for my $type (qw(STORE PUBLISH FORCE_PUBLISH)) {
             my $name = $type . "_HDD_$i";
-            next unless my $out = $common::vars{$name};
+            next unless my $out = $tiedvars::vars{$name};
             die "HDD_$i also specified in $name. This is not supported" if grep { $_ && $_ eq $out } @hdds;
         }
     }
@@ -143,17 +143,17 @@ sub _check_publish_vars () {
 
 sub ensure_valid_vars () {
     # defaults
-    $common::vars{QEMUPORT} ||= 15222;
-    $common::vars{VNC}      ||= 90;
+    $tiedvars::vars{QEMUPORT} ||= 15222;
+    $tiedvars::vars{VNC}      ||= 90;
     # openQA already sets a random string we can reuse
-    $common::vars{JOBTOKEN} ||= random_string(10);
+    $tiedvars::vars{JOBTOKEN} ||= random_string(10);
 
     if ($gocrbin && !-x $gocrbin) {
         $gocrbin = undef;
     }
 
-    die "CASEDIR variable not set, unknown test case directory" if !defined $common::vars{CASEDIR};
-    die "No scripts in $common::vars{CASEDIR}"                          if !-e "$common::vars{CASEDIR}";
+    die "CASEDIR variable not set, unknown test case directory" if !defined $tiedvars::vars{CASEDIR};
+    die "No scripts in $tiedvars::vars{CASEDIR}"                          if !-e "$tiedvars::vars{CASEDIR}";
     _check_publish_vars();
     save_vars();
 }
@@ -252,7 +252,7 @@ sub save_json_file ($result, $fn) {
 }
 
 sub scale_timeout ($timeout) {
-    return $timeout * ($common::vars{TIMEOUT_SCALE} // 1);
+    return $timeout * ($tiedvars::vars{TIMEOUT_SCALE} // 1);
 }
 
 =head2 random_string
@@ -271,44 +271,5 @@ sub random_string ($count) {
 
 # sleeping for one second should ensure that one more screenshot is taken
 sub wait_for_one_more_screenshot () { sleep 1 }
-
-package bmwqemu::tiedvars;
-use Tie::Hash;
-use base qw/ Tie::StdHash /;    # no:style prevent style warning regarding use of Mojo::Base and base in this file
-use Carp ();
-
-sub TIEHASH ($class, %args) {
-    my $self = bless {
-        data => {%args},
-    }, $class;
-}
-
-sub STORE ($self, $key, $val) {
-    warn Carp::longmess "Settings key '$key' is invalid" unless $key =~ m/^(?:[A-Z0-9_]+)\z/;
-    $self->{data}->{$key} = $val;
-}
-
-sub FIRSTKEY ($self) {
-    my $data = $self->{data};
-    my @k = keys %$data;    # reset
-    my $next = each %$data;
-}
-
-sub NEXTKEY ($self, $last) {
-    my $data = $self->{data};
-    my $next = each %$data;
-}
-
-sub FETCH ($self, $key) {
-    my $val = $self->{data}->{$key};
-}
-
-sub DELETE ($self, $key) { delete $self->{data}->{$key} }
-
-sub EXISTS ($self, $key) { exists $self->{data}->{$key} }
-
-sub CLEAR ($self) { $self->{data} = {} }
-
-sub SCALAR ($self) { scalar %{$self->{data}} }
 
 1;

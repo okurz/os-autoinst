@@ -747,7 +747,7 @@ Returns content of test variable C<$variable> or the C<$default> given as second
 
 sub get_var {
     my ($var, $default) = @_;
-    return $bmwqemu::vars{$var} // $default;
+    return $tiedvars::vars{$var} // $default;
 }
 
 =head2 get_required_var
@@ -760,7 +760,7 @@ Similar to C<get_var> but without default value and throws exception if variable
 
 sub get_required_var {
     my ($var) = @_;
-    return $bmwqemu::vars{$var} // croak "Could not retrieve required variable $var";
+    return $tiedvars::vars{$var} // croak "Could not retrieve required variable $var";
 }
 
 =head2 set_var
@@ -781,7 +781,7 @@ to make sure that possibly deselected needles are now taken into account
 
 sub set_var {
     my ($var, $val, %args) = @_;
-    $bmwqemu::vars{$var} = $val;
+    $tiedvars::vars{$var} = $val;
     if ($args{reload_needles}) {
         bmwqemu::save_vars();
         query_isotovideo('backend_reload_needles', {});
@@ -800,7 +800,7 @@ Returns true if test variable C<$variable> is equal to C<$value> or returns C<un
 
 sub check_var {
     my ($var, $val) = @_;
-    return 1 if (defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val);
+    return 1 if (defined $tiedvars::vars{$var} && $tiedvars::vars{$var} eq $val);
     return 0;
 }
 
@@ -814,7 +814,7 @@ Return the given variable as array reference (split variable value by , | or ; )
 
 sub get_var_array {
     my ($var, $default) = @_;
-    my @vars = split(/,|;/, $bmwqemu::vars{$var} || '');
+    my @vars = split(/,|;/, $tiedvars::vars{$var} || '');
     my @default = split(/,|;/, $default || '');
     return \@default if !@vars;
     return \@vars;
@@ -2044,7 +2044,7 @@ sub save_storage_drives {
 
     # Right now, we're saving all the disks
     # sometimes we might not want to. This could be improved.
-    if (my $nd = $bmwqemu::vars{NUMDISKS}) {
+    if (my $nd = $tiedvars::vars{NUMDISKS}) {
         for my $i (1 .. $nd) {
             query_isotovideo('backend_save_storage_drives', {disk => $i, filename => $filename});
         }

@@ -8,8 +8,8 @@ use bmwqemu;
 
 sub new ($class) {
     my $self = $class->SUPER::new;
-    $bmwqemu::vars{QEMURAM} //= 1024;
-    $bmwqemu::vars{QEMUCPUS} //= 1;
+    $tiedvars::vars{QEMURAM} //= 1024;
+    $tiedvars::vars{QEMUCPUS} //= 1;
     return $self;
 }
 

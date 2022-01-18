@@ -416,9 +416,9 @@ sub new_3270_console ($self) {
 sub activate ($self) {
     $self->SUPER::activate;
 
-    $self->zVM_host($bmwqemu::vars{ZVM_HOST} or die 'Need variable ZVM_HOST');
-    $self->guest_user($bmwqemu::vars{ZVM_GUEST} or die 'Need variable ZVM_GUEST');
-    $self->guest_login($bmwqemu::vars{ZVM_PASSWORD} or die 'Need variable ZVM_PASSWORD');
+    $self->zVM_host($tiedvars::vars{ZVM_HOST} or die 'Need variable ZVM_HOST');
+    $self->guest_user($tiedvars::vars{ZVM_GUEST} or die 'Need variable ZVM_GUEST');
+    $self->guest_login($tiedvars::vars{ZVM_PASSWORD} or die 'Need variable ZVM_PASSWORD');
     $self->new_3270_console;
     $self->connect_and_login;
     return;

@@ -38,8 +38,8 @@ $basetest_mock->redefine(remove_last_result => sub { pop @recorded_info });
 $autotest::current_test = basetest->new;
 
 # init mmapi/lockapi
-$bmwqemu::vars{OPENQA_URL} = 'http://not/relevant';
-$bmwqemu::vars{JOBTOKEN} = 'fake-jobtoken';
+$tiedvars::vars{OPENQA_URL} = 'http://not/relevant';
+$tiedvars::vars{JOBTOKEN} = 'fake-jobtoken';
 
 # define helper to call a function by its name
 sub call ($function_name, @args) {
@@ -131,7 +131,7 @@ $fake_api->delete('/barrier/#name' => sub {
 $routes->get('/autoinst/vars' => sub { shift->render(json => {vars => {foo => 'bar'}}) });
 
 # make mmapi/lockapi connect to the fake server
-$bmwqemu::vars{OPENQA_URL} = '/not/relevant';
+$tiedvars::vars{OPENQA_URL} = '/not/relevant';
 mmapi::set_app($mock_srv);
 
 subtest 'mmapi: general usage' => sub {

@@ -27,8 +27,8 @@ sub activate ($self) {
     # a child was born
     $self->{serial_pipe}->reader();
 
-    my @cmd = ('/usr/sbin/ipmiconsole', '-h', $bmwqemu::vars{IPMI_HOSTNAME});
-    push(@cmd, ('-u', $bmwqemu::vars{IPMI_USER}, '-p', $bmwqemu::vars{IPMI_PASSWORD}));
+    my @cmd = ('/usr/sbin/ipmiconsole', '-h', $tiedvars::vars{IPMI_HOSTNAME});
+    push(@cmd, ('-u', $tiedvars::vars{IPMI_USER}, '-p', $tiedvars::vars{IPMI_PASSWORD}));
 
     # zypper in dumponlyconsole, check devel:openQA for a patched freeipmi version that doesn't grab the terminal
     push(@cmd, '--dumponly');

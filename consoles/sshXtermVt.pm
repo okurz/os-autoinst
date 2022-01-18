@@ -24,7 +24,7 @@ sub activate ($self) {
     my $serial = $self->{args}->{serial};
 
     # Wait that ssh server on SUT is live on network
-    if (!$self->wait_for_ssh_port($hostname, timeout => ($bmwqemu::vars{SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT} // 120))) {
+    if (!$self->wait_for_ssh_port($hostname, timeout => ($tiedvars::vars{SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT} // 120))) {
         bmwqemu::diag("$hostname does not seems to have an active SSH server. Continuing anyway.");
     }
     $self->callxterm($sshcommand, "ssh:$testapi_console");

@@ -130,18 +130,18 @@ subtest 'save_vars no_secret' => sub {
 
 subtest 'HDD variables sanity check' => sub {
     use bmwqemu ();
-    %bmwqemu::vars = (NUMDISKS => 1, HDD_1 => 'foo.qcow2', PUBLISH_HDD_1 => 'bar.qcow2');
+    %tiedvars::vars = (NUMDISKS => 1, HDD_1 => 'foo.qcow2', PUBLISH_HDD_1 => 'bar.qcow2');
     ok(bmwqemu::_check_publish_vars, 'one HDD for reading, one for publishing is ok');
-    $bmwqemu::vars{PUBLISH_HDD_1} = 'foo.qcow2';
+    $tiedvars::vars{PUBLISH_HDD_1} = 'foo.qcow2';
     throws_ok { bmwqemu::_check_publish_vars } qr/HDD_1 also specified in PUBLISH/, 'overwriting source HDD is prevented';
 };
 
 subtest 'invalid vars characters' => sub {
-    my $num = scalar %bmwqemu::vars;
-    like warning { $bmwqemu::vars{lowercase_not_accepted} = 23 }, qr{Settings key 'lowercase_not_accepted' is invalid.*12-bmwqemu.t}s, 'Warning is issued for invalid setting keys';
-    my $new_num = %bmwqemu::vars;
+    my $num = scalar %tiedvars::vars;
+    like warning { $tiedvars::vars{lowercase_not_accepted} = 23 }, qr{Settings key 'lowercase_not_accepted' is invalid.*12-bmwqemu.t}s, 'Warning is issued for invalid setting keys';
+    my $new_num = %tiedvars::vars;
     is $new_num, $num + 1, '%vars in scalar context works';
-    is exists $bmwqemu::vars{lowercase_not_accepted}, 1, 'exists $vars{...} works';
+    is exists $tiedvars::vars{lowercase_not_accepted}, 1, 'exists $vars{...} works';
 };
 
 my %new_json = (foo => 'bar', baz => 42);

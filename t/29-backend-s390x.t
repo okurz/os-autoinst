@@ -10,7 +10,7 @@ use Test::Warnings qw(:all :report_warnings);
 
 use backend::s390x;    # SUT
 
-$bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
+$tiedvars::vars{WORKER_HOSTNAME} = 'localhost';
 ok my $backend = backend::s390x->new(), 'can instantiate backend';
 ok !$backend->check_socket(undef), 'check_socket returns false by default';
 

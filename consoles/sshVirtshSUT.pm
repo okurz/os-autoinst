@@ -11,7 +11,7 @@ sub new ($class, $testapi_console, $args) {
     my $self = $class->SUPER::new($testapi_console, $args);
 
     # TODO: inherit from consoles::sshVirtsh
-    my $instance = $bmwqemu::vars{VIRSH_INSTANCE} // 1;
+    my $instance = $tiedvars::vars{VIRSH_INSTANCE} // 1;
     $self->{libvirt_domain} = $args->{libvirt_domain} // "openQA-SUT-$instance";
     $self->{serial_port_no} = $args->{serial_port_no} // SERIAL_TERMINAL_DEFAULT_PORT;
 

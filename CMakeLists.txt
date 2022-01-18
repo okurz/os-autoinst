@@ -82,6 +82,7 @@ set(PERL_FILES
     osutils.pm
     signalblocker.pm
     testapi.pm
+    tiedvars.pm
 )
 set(MISC_FILES
     consoles/icewm.cfg

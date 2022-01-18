@@ -36,7 +36,7 @@ argument C<clone_depth> which defaults to 1.
 
 =cut
 sub checkout_git_repo_and_branch ($dir_variable, %args) {
-    my $dir = $bmwqemu::vars{$dir_variable};
+    my $dir = $tiedvars::vars{$dir_variable};
     return undef unless defined $dir;
 
     my $url = Mojo::URL->new($dir);
@@ -92,7 +92,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     else {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
-    return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs->to_string;
+    return $tiedvars::vars{$dir_variable} = path($local_path)->to_abs->to_string;
 }
 
 =head2 checkout_git_refspec
@@ -110,7 +110,7 @@ Example:
 =cut
 sub checkout_git_refspec ($dir, $refspec_variable) {
     return undef unless defined $dir;
-    if (my $refspec = $bmwqemu::vars{$refspec_variable}) {
+    if (my $refspec = $tiedvars::vars{$refspec_variable}) {
         bmwqemu::diag "Checking out local git refspec '$refspec' in '$dir'";
         qx{env git -C $dir checkout -q $refspec};
         die "Failed to checkout '$refspec' in '$dir'\n" unless $? == 0;
@@ -128,23 +128,23 @@ configuration variables.
 sub handle_generated_assets ($command_handler, $clean_shutdown) {
     my $return_code = 0;
     # mark hard disks for upload if test finished
-    return unless $bmwqemu::vars{BACKEND} =~ m/^(qemu|generalhw)$/;
+    return unless $tiedvars::vars{BACKEND} =~ m/^(qemu|generalhw)$/;
     my @toextract;
-    my $nd = $bmwqemu::vars{NUMDISKS};
+    my $nd = $tiedvars::vars{NUMDISKS};
     if ($command_handler->test_completed) {
         for my $i (1 .. $nd) {
             my $dir = 'assets_private';
-            my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
+            my $name = $tiedvars::vars{"STORE_HDD_$i"} || undef;
             unless ($name) {
-                $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
+                $name = $tiedvars::vars{"PUBLISH_HDD_$i"} || undef;
                 $dir = 'assets_public';
             }
             next unless $name;
             push @toextract, _store_asset($i, $name, $dir);
         }
-        if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
+        if ($tiedvars::vars{UEFI} && $tiedvars::vars{PUBLISH_PFLASH_VARS}) {
             push(@toextract, {pflash_vars => 1,
-                    name => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
+                    name => $tiedvars::vars{PUBLISH_PFLASH_VARS},
                     dir => 'assets_public',
                     format => 'qcow2'});
         }
@@ -154,7 +154,7 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
         }
     }
     for my $i (1 .. $nd) {
-        my $name = $bmwqemu::vars{"FORCE_PUBLISH_HDD_$i"} || next;
+        my $name = $tiedvars::vars{"FORCE_PUBLISH_HDD_$i"} || next;
         bmwqemu::diag "Requested to force the publication of '$name'";
         push @toextract, _store_asset($i, $name, 'assets_public');
     }
@@ -180,28 +180,28 @@ sub load_test_schedule (@) {
     # add lib of the test distributions - but only for main.pm not to pollute
     # further dependencies (the tests get it through autotest)
     my @oldINC = @INC;
-    unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
-    if ($bmwqemu::vars{SCHEDULE}) {
-        unshift @INC, '.' unless path($bmwqemu::vars{CASEDIR})->is_abs;
+    unshift @INC, $tiedvars::vars{CASEDIR} . '/lib';
+    if ($tiedvars::vars{SCHEDULE}) {
+        unshift @INC, '.' unless path($tiedvars::vars{CASEDIR})->is_abs;
         bmwqemu::fctinfo 'Enforced test schedule by \'SCHEDULE\' variable in action';
-        $bmwqemu::vars{INCLUDE_MODULES} = undef;
-        autotest::loadtest($_ =~ qr/\./ ? $_ : $_ . '.pm') foreach split(/[, ]+/, $bmwqemu::vars{SCHEDULE});
-        $bmwqemu::vars{INCLUDE_MODULES} = 'none';
+        $tiedvars::vars{INCLUDE_MODULES} = undef;
+        autotest::loadtest($_ =~ qr/\./ ? $_ : $_ . '.pm') foreach split(/[, ]+/, $tiedvars::vars{SCHEDULE});
+        $tiedvars::vars{INCLUDE_MODULES} = 'none';
     }
-    my $productdir = $bmwqemu::vars{PRODUCTDIR};
+    my $productdir = $tiedvars::vars{PRODUCTDIR};
     my $main_path = path($productdir, 'main.pm');
     try {
         if (-e $main_path) {
             unshift @INC, '.';
             require $main_path;
         }
-        elsif (!path($productdir)->is_abs && -e path($bmwqemu::vars{CASEDIR}, $main_path)) {
-            require(path($bmwqemu::vars{CASEDIR}, $main_path)->to_string);
+        elsif (!path($productdir)->is_abs && -e path($tiedvars::vars{CASEDIR}, $main_path)) {
+            require(path($tiedvars::vars{CASEDIR}, $main_path)->to_string);
         }
         elsif ($productdir && !-e $productdir) {
             die "PRODUCTDIR '$productdir' invalid, could not be found";
         }
-        elsif (!$bmwqemu::vars{SCHEDULE}) {
+        elsif (!$tiedvars::vars{SCHEDULE}) {
             die "'SCHEDULE' not set and $main_path not found, need one of both";
         }
     }
@@ -213,7 +213,7 @@ sub load_test_schedule (@) {
     };
     @INC = @oldINC;
 
-    if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
+    if ($tiedvars::vars{_EXIT_AFTER_SCHEDULE}) {
         bmwqemu::fctinfo 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
         exit 0;
     }

@@ -116,7 +116,7 @@ sub run ($self, $cmdpipe, $rsppipe) {
 
     $self->last_update_request("-Inf" + 0);
     $self->last_screenshot(undef);
-    $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
+    $self->screenshot_interval($tiedvars::vars{SCREENSHOTINTERVAL} || .5);
     # query the VNC backend more often than we write out screenshots, so the chances
     # are high we're not writing out outdated screens
     $self->update_request_interval($self->screenshot_interval / 2);
@@ -150,8 +150,8 @@ sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers
 sub do_capture ($self, $timeout = undef, $starttime = undef) {
     # Time slot buckets
     my $buckets = {};
-    my $wait_time_limit = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
-    my $hits_limit = $bmwqemu::vars{_CHKSEL_RATE_HITS} // 30_000;
+    my $wait_time_limit = $tiedvars::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
+    my $hits_limit = $tiedvars::vars{_CHKSEL_RATE_HITS} // 30_000;
 
     while (1) {
         last unless $self->{cmdpipe};
@@ -299,10 +299,10 @@ sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
 }
 
 sub _start_external_video_encoder_if_configured ($self) {
-    return 0 if $bmwqemu::vars{NOVIDEO};
+    return 0 if $tiedvars::vars{NOVIDEO};
 
-    my $cmd = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} or return 0;
-    my $output_file_name = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_OUTPUT_FILE_EXTENSION} // 'webm';
+    my $cmd = $tiedvars::vars{EXTERNAL_VIDEO_ENCODER_CMD} or return 0;
+    my $output_file_name = $tiedvars::vars{EXTERNAL_VIDEO_ENCODER_OUTPUT_FILE_EXTENSION} // 'webm';
     my $output_file_path = Cwd::getcwd . "/video.$output_file_name";
     $cmd .= " '$output_file_path'" unless $cmd =~ s/%OUTPUT_FILE_NAME%/$output_file_path/;
 
@@ -318,7 +318,7 @@ sub start_encoder ($self) {
     # start internal video encoder; only start it to generate PNGs if an external video encoder is used or NOVIDEO set
     my $cwd = Cwd::getcwd;
     my @cmd = (qw(nice -n 19), "$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv");
-    push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
+    push(@cmd, '-n') if $tiedvars::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$tiedvars::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
     $self->_invoke_video_encoder(encoder_pipe => 'built-in video encoder', @cmd);
 
     # open file for recording real time clock timestamps as subtitle
@@ -520,7 +520,7 @@ sub enqueue_screenshot ($self, $image) {
     $self->{video_frame_number} += 1;
 
     $watch->stop();
-    if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$bmwqemu::vars{NO_DEBUG_IO}) {
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$tiedvars::vars{NO_DEBUG_IO}) {
         bmwqemu::fctwarn sprintf("enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
     }
@@ -994,7 +994,7 @@ sub check_asserted_screen ($self, $args) {
             "check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific",
             $watch->as_data()->{total_time},
             scalar(@registered_needles));
-        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary() if (!$bmwqemu::vars{NO_DEBUG_IO} && $watch->{debug});
+        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary() if (!$tiedvars::vars{NO_DEBUG_IO} && $watch->{debug});
     }
 
     my $no_match_diag = 'no match: ' . time_remaining_str($n);
@@ -1153,10 +1153,10 @@ sub new_ssh_connection ($self, %args) {
     }
 
     # timeout requires libssh2 >= 1.2.9 so not all versions might have it
-    my $ssh = Net::SSH2->new(timeout => ($bmwqemu::vars{SSH_COMMAND_TIMEOUT_S} // 5 * ONE_MINUTE) * 1000);
+    my $ssh = Net::SSH2->new(timeout => ($tiedvars::vars{SSH_COMMAND_TIMEOUT_S} // 5 * ONE_MINUTE) * 1000);
 
     # Retry multiple times, in case of the guest is not running yet
-    my $counter = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
+    my $counter = $tiedvars::vars{SSH_CONNECT_RETRY} // 5;
     my $con_pretty = "$args{username}\@$args{hostname}";
     $con_pretty .= ":$args{port}" unless $args{port} == 22;
     while ($counter > 0) {
@@ -1174,7 +1174,7 @@ sub new_ssh_connection ($self, %args) {
         }
         else {
             bmwqemu::diag "Could not connect to $con_pretty, Retrying after some seconds...";
-            sleep($bmwqemu::vars{SSH_CONNECT_RETRY_INTERVAL} // 10);
+            sleep($tiedvars::vars{SSH_CONNECT_RETRY_INTERVAL} // 10);
             $counter--;
             next;
         }

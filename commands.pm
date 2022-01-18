@@ -99,7 +99,7 @@ sub _is_allowed_path ($path) {
 }
 
 sub test_data ($self) {
-    my $path = path($bmwqemu::vars{CASEDIR}, 'data');
+    my $path = path($tiedvars::vars{CASEDIR}, 'data');
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
         return $self->reply->not_found unless _is_allowed_path($relpath);
@@ -118,10 +118,10 @@ sub get_asset ($self) {
     return $self->reply->not_found unless _is_allowed_path($asset_name) && _is_allowed_path($asset_type);
 
     # check for the asset within the current working directory because the worker cache will store it here; otherwise
-    # fallback to $bmwqemu::vars{ASSETDIR} for legacy setups (see poo#70723)
+    # fallback to $tiedvars::vars{ASSETDIR} for legacy setups (see poo#70723)
     my $relpath = $self->param('relpath');
     my $path = path($asset_name);
-    $path = path($bmwqemu::vars{ASSETDIR}, $asset_type, $asset_name) unless -f $path;
+    $path = path($tiedvars::vars{ASSETDIR}, $asset_type, $asset_name) unless -f $path;
     if (defined $relpath) {
         return $self->reply->not_found unless _is_allowed_path($relpath);
         $path = $path->child($relpath);
@@ -154,7 +154,7 @@ sub upload_file ($self) {
 
 sub get_vars ($self) {
     bmwqemu::load_vars();
-    return $self->render(json => {vars => \%bmwqemu::vars});
+    return $self->render(json => {vars => \%tiedvars::vars});
 }
 
 sub current_script ($self) {
@@ -201,8 +201,8 @@ sub get_temp_file ($self) {
 
 sub run_daemon ($port, $isotovideo) {
     # allow up to 20 GiB for uploads of big hdd images
-    $ENV{MOJO_MAX_MESSAGE_SIZE} //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 0) * 1024**3;
-    $ENV{MOJO_INACTIVITY_TIMEOUT} //= ($bmwqemu::vars{UPLOAD_INACTIVITY_TIMEOUT} // 300);
+    $ENV{MOJO_MAX_MESSAGE_SIZE} //= ($tiedvars::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 0) * 1024**3;
+    $ENV{MOJO_INACTIVITY_TIMEOUT} //= ($tiedvars::vars{UPLOAD_INACTIVITY_TIMEOUT} // 300);
     $ENV{MOJO_TMPDIR} //= path('command-server-tmp')->make_path;
 
     # avoid leaking token
@@ -215,7 +215,7 @@ sub run_daemon ($port, $isotovideo) {
 
     my $r = app->routes;
     $r->namespaces(['OpenQA']);
-    my $token_auth = $r->any("/$bmwqemu::vars{JOBTOKEN}");
+    my $token_auth = $r->any("/$tiedvars::vars{JOBTOKEN}");
 
     # for access all data as CPIO archive
     $token_auth->get('/data' => \&test_data);
@@ -253,7 +253,7 @@ sub run_daemon ($port, $isotovideo) {
     app->types->type(oga => 'audio/ogg');
 
     # it's unlikely that we will ever use cookies, but we need a secret to shut up mojo
-    app->secrets([$bmwqemu::vars{JOBTOKEN}]);
+    app->secrets([$tiedvars::vars{JOBTOKEN}]);
 
     # listen to all IPv4 and IPv6 interfaces (if ipv6 is supported)
     my $address = '[::]';
@@ -281,7 +281,7 @@ sub run_daemon ($port, $isotovideo) {
             }
     })->watch($isotovideo, 1, 0);    # watch only readable (and not writable)
 
-    app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
+    app->log->info("cmdsrv: daemon reachable under http://*:$port/$tiedvars::vars{JOBTOKEN}/");
     try {
         $daemon->run;
     }

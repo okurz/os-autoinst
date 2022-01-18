@@ -41,10 +41,10 @@ sub wait_for_server ($ua) {
     return 1;
 }
 
-$bmwqemu::vars{JOBTOKEN} = $job;
-$bmwqemu::vars{CASEDIR} = $data_dir->child('tests');
-$bmwqemu::vars{ASSETDIR} = $data_dir->child('assets');
-$bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} = 0.0048828125;    # 5 MiB, less than our Tiny Core ISO
+$tiedvars::vars{JOBTOKEN} = $job;
+$tiedvars::vars{CASEDIR} = $data_dir->child('tests');
+$tiedvars::vars{ASSETDIR} = $data_dir->child('assets');
+$tiedvars::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} = 0.0048828125;    # 5 MiB, less than our Tiny Core ISO
 
 my @tempfiles;
 # now this is a game of luck

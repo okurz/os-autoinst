@@ -216,15 +216,15 @@ subtest 'Methods backend::svirt::attach_to_running, start_serial_grab and stop_s
     $svirt_console->backend($backend_mock);
     $svirt_console->attach_to_running;
     $backend_mock->called_ok('start_serial_grab', 'serial grab attempted');
-    is $bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}, 1, 'destructon of VM prevented by default';
+    is $tiedvars::vars{SVIRT_KEEP_VM_RUNNING}, 1, 'destructon of VM prevented by default';
 
     $svirt_console->attach_to_running('foobar');
     is $svirt_console->name, 'foobar', 'console name set';
 
-    $bmwqemu::vars{SVIRT_KEEP_VM_RUNNING} = 0;
+    $tiedvars::vars{SVIRT_KEEP_VM_RUNNING} = 0;
     $svirt_console->attach_to_running({name => 'barfoo', stop_vm => 1});
     is $svirt_console->name, 'barfoo', 'console name set (2)';
-    is $bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}, 0, 'VM not kept running';
+    is $tiedvars::vars{SVIRT_KEEP_VM_RUNNING}, 0, 'VM not kept running';
 
     $backend_mock->clear;
     $svirt_console->start_serial_grab;
@@ -261,8 +261,8 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
             return ('A', 'B');
     });
 
-    delete $bmwqemu::vars{VIRSH_VMM_FAMILY};
-    $bmwqemu::vars{JOBTOKEN} = 'XYZ23';
+    delete $tiedvars::vars{VIRSH_VMM_FAMILY};
+    $tiedvars::vars{JOBTOKEN} = 'XYZ23';
 
     my $svirt = backend::svirt->new();
     $run_ssh_expect = 'virsh console NAME\s+;';
@@ -275,15 +275,15 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     $run_ssh_expect = 'virsh console NAME 666\s*;';
     $svirt->open_serial_console_via_ssh('NAME', port => 666);
 
-    $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware';
-    $bmwqemu::vars{VMWARE_HOST} = 'my.vmware.host';
+    $tiedvars::vars{VIRSH_VMM_FAMILY} = 'vmware';
+    $tiedvars::vars{VMWARE_HOST} = 'my.vmware.host';
     $run_ssh_expect = 'socat - TCP4:my.vmware.host:,crnl;';
     $svirt->open_serial_console_via_ssh('NAME');
     $run_ssh_expect = 'socat - TCP4:my.vmware.host:666,crnl;';
     $svirt->open_serial_console_via_ssh('NAME', port => 666);
 
-    $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'hyperv';
-    $bmwqemu::vars{HYPERV_SERVER} = 'my.hyperv.server';
+    $tiedvars::vars{VIRSH_VMM_FAMILY} = 'hyperv';
+    $tiedvars::vars{HYPERV_SERVER} = 'my.hyperv.server';
     $run_ssh_expect = 'socat - TCP4:my.hyperv.server:,crnl;';
     $svirt->open_serial_console_via_ssh('NAME');
     $run_ssh_expect = 'socat - TCP4:my.hyperv.server:666,crnl;';
@@ -293,7 +293,7 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     $module->redefine(run_ssh => sub { return ('A', 'B') });
     is_deeply([$svirt->open_serial_console_via_ssh('NAME')], ['A', 'B'], 'Check that we get output from run_ssh() call');
 
-    $bmwqemu::vars{JOBTOKEN} = 'CHECK_DELETE_TOKEN';
+    $tiedvars::vars{JOBTOKEN} = 'CHECK_DELETE_TOKEN';
     my $expected_serial_file = '/tmp/' . $svirt->SERIAL_TERMINAL_LOG_PATH . '.CHECK_DELETE_TOKEN';
     $test_log_cnt = 11;
     dies_ok(sub { $svirt->open_serial_console_via_ssh('NAME') }, "die() when log file wasn't created");

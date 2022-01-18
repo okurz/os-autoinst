@@ -74,14 +74,14 @@ Can eg. check vars{BIGTEST}, vars{LIVETEST}
 =cut
 
 sub is_applicable ($self) {
-    if ($bmwqemu::vars{EXCLUDE_MODULES}) {
-        my %excluded = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES});
+    if ($tiedvars::vars{EXCLUDE_MODULES}) {
+        my %excluded = map { $_ => 1 } split(/\s*,\s*/, $tiedvars::vars{EXCLUDE_MODULES});
 
         return 0 if $excluded{$self->{class}};
         return 0 if $excluded{$self->{fullname}};
     }
-    if ($bmwqemu::vars{INCLUDE_MODULES}) {
-        my %included = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{INCLUDE_MODULES});
+    if ($tiedvars::vars{INCLUDE_MODULES}) {
+        my %included = map { $_ => 1 } split(/\s*,\s*/, $tiedvars::vars{INCLUDE_MODULES});
 
         return 0 unless ($included{$self->{class}} || $included{$self->{fullname}});
     }
@@ -286,7 +286,7 @@ sub post_run_hook ($self) {
 
 sub run_post_fail ($self, $msg) {
     my $post_fail_hook_start_time = time;
-    unless ($bmwqemu::vars{_SKIP_POST_FAIL_HOOKS}) {
+    unless ($tiedvars::vars{_SKIP_POST_FAIL_HOOKS}) {
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
         bmwqemu::diag("post_fail_hook failed: $@") if $@;
@@ -617,7 +617,7 @@ sub rollback_activated_consoles ($self) {
 }
 
 sub search_for_expected_serial_failures ($self) {
-    if (defined $bmwqemu::vars{BACKEND} && $bmwqemu::vars{BACKEND} eq 'qemu') {
+    if (defined $tiedvars::vars{BACKEND} && $tiedvars::vars{BACKEND} eq 'qemu') {
         $self->parse_serial_output_qemu();
     }
 }

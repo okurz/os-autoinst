@@ -40,8 +40,8 @@ loadtest is called.
 =cut
 
 sub find_script ($script) {
-    my $casedir = $bmwqemu::vars{CASEDIR};
-    my $script_override_path = join('/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script);
+    my $casedir = $tiedvars::vars{CASEDIR};
+    my $script_override_path = join('/', $tiedvars::vars{ASSETDIR} // '', 'other', $script);
     if (-f $script_override_path) {
         bmwqemu::diag("Found override test module for $script: $script_override_path");
         return path($script_override_path)->to_rel($casedir);
@@ -87,7 +87,7 @@ e.g. by making use of the openQA asset download feature.
 
 sub loadtest ($script, %args) {
     no utf8;    # Inline Python fails on utf8, so let's exclude it here
-    my $casedir = $bmwqemu::vars{CASEDIR};
+    my $casedir = $tiedvars::vars{CASEDIR};
     my $script_path = find_script($script);
     my ($name, $category) = parse_test_path($script_path);
     my $test;
@@ -318,7 +318,7 @@ sub query_isotovideo ($cmd, $args = undef) {
 sub runalltests () {
     die "ERROR: no tests loaded" unless @testorder;
 
-    my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
+    my $firsttest = $tiedvars::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
     bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
@@ -331,8 +331,8 @@ sub runalltests () {
         my $fullname = $t->{fullname};
 
         if (!$vmloaded && $fullname eq $firsttest) {
-            if ($bmwqemu::vars{SKIPTO}) {
-                if ($bmwqemu::vars{TESTDEBUG}) {
+            if ($tiedvars::vars{SKIPTO}) {
+                if ($tiedvars::vars{TESTDEBUG}) {
                     load_snapshot('lastgood');
                 }
                 else {
@@ -353,7 +353,7 @@ sub runalltests () {
         $t->start();
 
         # avoid erasing the good vm snapshot
-        if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $fullname) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+        if ($snapshots_supported && (($tiedvars::vars{SKIPTO} || '') ne $fullname) && $tiedvars::vars{MAKETESTSNAPSHOTS}) {
             make_snapshot($t->{fullname});
         }
 
@@ -368,13 +368,13 @@ sub runalltests () {
                 # avoid duplicating the message
                 bmwqemu::diag $msg;
             }
-            if ($bmwqemu::vars{DUMP_MEMORY_ON_FAIL}) {
+            if ($tiedvars::vars{DUMP_MEMORY_ON_FAIL}) {
                 query_isotovideo('backend_save_memory_dump', {filename => $fullname});
             }
-            if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $bmwqemu::vars{TESTDEBUG}) {
+            if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $tiedvars::vars{TESTDEBUG}) {
                 my $reason = ($t->{fatal_failure} || $flags->{fatal})
                   ? 'after a fatal test failure'
-                  : ($bmwqemu::vars{TESTDEBUG}
+                  : ($tiedvars::vars{TESTDEBUG}
                     ? 'because TESTDEBUG has been set'
                     : 'because snapshotting is disabled/unavailable and "fatal => 0" has NOT been set explicitly');
                 bmwqemu::diag "stopping overall test execution $reason";
@@ -393,7 +393,7 @@ sub runalltests () {
                 $next_test->record_resultfile('Snapshot', "Loaded snapshot after '$name' (always_rollback)", result => 'ok') if $next_test;
                 $last_milestone->rollback_activated_consoles();
             }
-            my $makesnapshot = $bmwqemu::vars{TESTDEBUG};
+            my $makesnapshot = $tiedvars::vars{TESTDEBUG};
             # Only make a snapshot if there is a next test and it's not a fatal milestone
             if (defined $next_test) {
                 my $nexttestflags = $next_test->test_flags();
@@ -411,8 +411,8 @@ sub runalltests () {
 
 sub loadtestdir ($dir) {
     die "need argument \$dir" unless $dir;
-    $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
-    $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
+    $dir =~ s/^\Q$tiedvars::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
+    $dir = join('/', $tiedvars::vars{CASEDIR}, $dir);    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;
     foreach my $script (glob "$dir/*.pm") {
         loadtest($script);

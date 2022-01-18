@@ -3,13 +3,10 @@
 
 package common;
 
-use strictures;
+use Mojo::Base -strict, -signatures;;
 use Exporter 'import';
-our @EXPORT_OK = qw(result_dir);
+our @EXPORT_OK = qw(RESULT_DIR);
 
-our %vars;
-tie %vars, 'common::tiedvars', %vars;
-
-sub result_dir { 'testresults' }
+use constant RESULT_DIR => 'testresults';
 
 1;

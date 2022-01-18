@@ -103,7 +103,7 @@ $mock_run->redefine('start', sub ($cmd, $stdin, $stdout, $stderr, $timeout = und
 
 $mock_run->redefine('finish');
 
-my $backend_vars = \%bmwqemu::vars;
+my $backend_vars = \%tiedvars::vars;
 $backend_vars->{VAGRANT_PROVIDER} = "libvirt";
 $backend_vars->{VAGRANT_BOX} = "foobar";
 

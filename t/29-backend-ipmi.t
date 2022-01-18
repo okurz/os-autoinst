@@ -17,10 +17,10 @@ BEGIN { *consoles::localXvnc::system = sub { "@_" =~ /hardware-console-log/ ? 1 
 
 use backend::ipmi;    # SUT
 
-$bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
-$bmwqemu::vars{"HARDWARE_CONSOLE_LOG"} = 1;
+$tiedvars::vars{WORKER_HOSTNAME} = 'localhost';
+$tiedvars::vars{"HARDWARE_CONSOLE_LOG"} = 1;
 ok my $backend = backend::ipmi->new(), 'backend can be created';
-$bmwqemu::vars{"IPMI_$_"} = "fake_$_" foreach qw(HOSTNAME USER PASSWORD);
+$tiedvars::vars{"IPMI_$_"} = "fake_$_" foreach qw(HOSTNAME USER PASSWORD);
 my @ipmi_cmdline = $backend->ipmi_cmdline;
 is_deeply \@ipmi_cmdline, [qw(ipmitool -I lanplus -H fake_HOSTNAME -U fake_USER -P fake_PASSWORD)], 'valid ipmi_cmdline';
 
@@ -50,7 +50,7 @@ $testapi::distri->{consoles}->{sol}->{DISPLAY} = "display";
 ok !$testapi::distri->{consoles}->{sol}->callxterm('ipmi', "console"), "can create console with log enabled";
 
 # reduce retries for testing
-$bmwqemu::vars{IPMI_MC_RESET_MAX_TRIES} = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT} = 3;
+$tiedvars::vars{IPMI_MC_RESET_MAX_TRIES} = $tiedvars::vars{IPMI_MC_RESET_TIMEOUT} = 3;
 combined_like { $backend->do_mc_reset } qr/IPMI mc reset success/, 'can call do_mc_reset';
 
 done_testing;

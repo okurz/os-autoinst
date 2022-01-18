@@ -8,7 +8,7 @@ use Mojo::Base 'backend::virt', -signatures;
 
 sub new ($class) {
     my $self = $class->SUPER::new;
-    $bmwqemu::vars{WORKER_HOSTNAME} // die 'Need variable \'WORKER_HOSTNAME\'';
+    $tiedvars::vars{WORKER_HOSTNAME} // die 'Need variable \'WORKER_HOSTNAME\'';
     return $self;
 }
 
@@ -16,17 +16,17 @@ sub new ($class) {
 # poweron to the test
 sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
-    $bmwqemu::vars{NOVALINK_HOSTNAME} // die 'Need variable \'NOVALINK_HOSTNAME\'';
-    $bmwqemu::vars{NOVALINK_PASSWORD} // die 'Need variable \'NOVALINK_PASSWORD\'';
+    $tiedvars::vars{NOVALINK_HOSTNAME} // die 'Need variable \'NOVALINK_HOSTNAME\'';
+    $tiedvars::vars{NOVALINK_PASSWORD} // die 'Need variable \'NOVALINK_PASSWORD\'';
     my $ssh = $testapi::distri->add_console(
         'novalink-ssh',
         'ssh-xterm',
         {
-            hostname => $bmwqemu::vars{NOVALINK_HOSTNAME},
-            password => $bmwqemu::vars{NOVALINK_PASSWORD},
-            username => $bmwqemu::vars{NOVALINK_USERNAME} // 'root',
+            hostname => $tiedvars::vars{NOVALINK_HOSTNAME},
+            password => $tiedvars::vars{NOVALINK_PASSWORD},
+            username => $tiedvars::vars{NOVALINK_USERNAME} // 'root',
             persistent => 1,
-            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0});
+            log => $tiedvars::vars{HARDWARE_CONSOLE_LOG} // 0});
     $ssh->backend($self);
 
     return {};
@@ -38,8 +38,8 @@ sub do_stop_vm ($self, @) {
     return {};
 }
 
-sub run_cmd ($self, $cmd, $hostname = $bmwqemu::vars{NOVALINK_HOSTNAME}, $password = $bmwqemu::vars{NOVALINK_PASSWORD}) {
-    my $username = $bmwqemu::vars{NOVALINK_USERNAME} // 'root';
+sub run_cmd ($self, $cmd, $hostname = $tiedvars::vars{NOVALINK_HOSTNAME}, $password = $tiedvars::vars{NOVALINK_PASSWORD}) {
+    my $username = $tiedvars::vars{NOVALINK_USERNAME} // 'root';
 
     return $self->run_ssh_cmd($cmd, username => $username, password => $password, hostname => $hostname, keep_open => 0);
 }
@@ -47,7 +47,7 @@ sub run_cmd ($self, $cmd, $hostname = $bmwqemu::vars{NOVALINK_HOSTNAME}, $passwo
 sub can_handle ($self, @) { }
 
 sub is_shutdown ($self, @) {
-    my $lpar_id = $bmwqemu::vars{NOVALINK_LPAR_ID} // die 'Need variable \'NOVALINK_LPAR_ID\'';
+    my $lpar_id = $tiedvars::vars{NOVALINK_LPAR_ID} // die 'Need variable \'NOVALINK_LPAR_ID\'';
     return $self->run_cmd("! pvmctl  lpar list -i id=${lpar_id} | grep  'not a'");
 }
 
@@ -63,7 +63,7 @@ sub stop_serial_grab ($self, @) {
 # parameters: on, off, reset
 sub power ($self, $args) {
     my $action = $args->{action};
-    my $lpar_id = $bmwqemu::vars{NOVALINK_LPAR_ID} // die 'Need variable \'NOVALINK_LPAR_ID\'';
+    my $lpar_id = $tiedvars::vars{NOVALINK_LPAR_ID} // die 'Need variable \'NOVALINK_LPAR_ID\'';
 
     my %cmds = (
         on => "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm",

@@ -11,7 +11,7 @@ use Carp qw(confess cluck carp croak);
 
 sub new ($class) {
     my $self = $class->SUPER::new;
-    defined $bmwqemu::vars{WORKER_HOSTNAME} or die 'Need variable WORKER_HOSTNAME';
+    defined $tiedvars::vars{WORKER_HOSTNAME} or die 'Need variable WORKER_HOSTNAME';
     return $self;
 }
 

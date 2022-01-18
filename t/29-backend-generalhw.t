@@ -26,18 +26,18 @@ use testapi;
 # setup test variables
 my $cmd_dir = tempdir;
 my $cmd_ctl = "$cmd_dir/ctl";
-$bmwqemu::vars{WORKER_HOSTNAME} = 'worker-hostname';
-$bmwqemu::vars{GENERAL_HW_CMD_DIR} = $cmd_dir;
-$bmwqemu::vars{GENERAL_HW_POWERON_CMD} = 'ctl poweron';
-$bmwqemu::vars{GENERAL_HW_POWEROFF_CMD} = 'ctl poweroff';
-$bmwqemu::vars{GENERAL_HW_SOL_CMD} = 'ctl console';
-$bmwqemu::vars{GENERAL_HW_SOL_ARGS} = 'console';
-$bmwqemu::vars{GENERAL_HW_FLASH_CMD} = 'ctl flash';
-$bmwqemu::vars{GENERAL_HW_FLASH_ARGS} = 'light';
-$bmwqemu::vars{GENERAL_HW_VNC_IP} = 'vnc.server';
-$bmwqemu::vars{GENERAL_HW_VNC_PORT} = 5900;
-$bmwqemu::vars{HDD_1} = '/hdd';
-$bmwqemu::vars{HDDSIZEGB_1} = 5;
+$tiedvars::vars{WORKER_HOSTNAME} = 'worker-hostname';
+$tiedvars::vars{GENERAL_HW_CMD_DIR} = $cmd_dir;
+$tiedvars::vars{GENERAL_HW_POWERON_CMD} = 'ctl poweron';
+$tiedvars::vars{GENERAL_HW_POWEROFF_CMD} = 'ctl poweroff';
+$tiedvars::vars{GENERAL_HW_SOL_CMD} = 'ctl console';
+$tiedvars::vars{GENERAL_HW_SOL_ARGS} = 'console';
+$tiedvars::vars{GENERAL_HW_FLASH_CMD} = 'ctl flash';
+$tiedvars::vars{GENERAL_HW_FLASH_ARGS} = 'light';
+$tiedvars::vars{GENERAL_HW_VNC_IP} = 'vnc.server';
+$tiedvars::vars{GENERAL_HW_VNC_PORT} = 5900;
+$tiedvars::vars{HDD_1} = '/hdd';
+$tiedvars::vars{HDDSIZEGB_1} = 5;
 
 # initialize distribution and backend
 my $distri = $testapi::distri = distribution->new;
@@ -113,13 +113,13 @@ subtest 'error handling' => sub {
         qr/Unable to run command '$cmd_ctl poweroff' \(deduced from test variable GENERAL_HW_POWEROFF_CMD\): fake error/,
         'IPC error thrown with context'
     );
-    $bmwqemu::vars{GENERAL_HW_CMD_DIR} = 'does-not-exist';
+    $tiedvars::vars{GENERAL_HW_CMD_DIR} = 'does-not-exist';
     throws_ok(
         sub { $backend->run_cmd('GENERAL_HW_POWEROFF_CMD') },
         qr/GENERAL_HW_CMD_DIR .* not .* directory/,
         'error when GENERAL_HW_CMD_DIR is not a directory'
     );
-    $bmwqemu::vars{WORKER_HOSTNAME} = undef;
+    $tiedvars::vars{WORKER_HOSTNAME} = undef;
     throws_ok(
         sub { backend::generalhw->new },
         qr/WORKER_HOSTNAME/,

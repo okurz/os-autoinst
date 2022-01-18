@@ -67,7 +67,7 @@ subtest run_post_fail_test => sub {
     combined_like { dies_ok { $basetest->runtest } 'post fail hooks runtime' } qr/post fail hooks runtime:/,
       'Post fail hooks runtime present';
 
-    $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
+    $tiedvars::vars{_SKIP_POST_FAIL_HOOKS} = 1;
     combined_like { dies_ok { $basetest->runtest } 'behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting' }
     qr/Test died/, 'test died';
 };
@@ -77,14 +77,14 @@ subtest modules_test => sub {
     $basetest->{class} = 'foo';
     $basetest->{fullname} = 'installation-foo';
     ok($basetest->is_applicable, 'module is applicable by default');
-    $bmwqemu::vars{EXCLUDE_MODULES} = 'foo,bar';
+    $tiedvars::vars{EXCLUDE_MODULES} = 'foo,bar';
     ok(!$basetest->is_applicable, 'module can be excluded');
-    $bmwqemu::vars{EXCLUDE_MODULES} = '';
-    $bmwqemu::vars{INCLUDE_MODULES} = 'bar,baz';
+    $tiedvars::vars{EXCLUDE_MODULES} = '';
+    $tiedvars::vars{INCLUDE_MODULES} = 'bar,baz';
     ok(!$basetest->is_applicable, 'modules can be excluded based on a passlist');
-    $bmwqemu::vars{INCLUDE_MODULES} = 'bar,baz,foo';
+    $tiedvars::vars{INCLUDE_MODULES} = 'bar,baz,foo';
     ok($basetest->is_applicable, 'a passlisted module shows up');
-    $bmwqemu::vars{EXCLUDE_MODULES} = 'foo';
+    $tiedvars::vars{EXCLUDE_MODULES} = 'foo';
     ok(!$basetest->is_applicable, 'passlisted modules are overridden by blocklist');
 };
 

@@ -271,16 +271,16 @@ sub wanted_ () {
     $needles{$needle->{name}} = $needle if $needle;
 }
 
-sub default_needles_dir () { "$bmwqemu::vars{PRODUCTDIR}/needles" }
+sub default_needles_dir () { "$tiedvars::vars{PRODUCTDIR}/needles" }
 
-sub init ($init_needles_dir = $bmwqemu::vars{NEEDLES_DIR} // default_needles_dir) {
+sub init ($init_needles_dir = $tiedvars::vars{NEEDLES_DIR} // default_needles_dir) {
     $needles_dir = $init_needles_dir;
     unless (-d $needles_dir) {
         die "Can't init needles from $needles_dir" if (path($needles_dir)->is_abs);
-        $needles_dir = path($bmwqemu::vars{CASEDIR}, $needles_dir)->to_string;
+        $needles_dir = path($tiedvars::vars{CASEDIR}, $needles_dir)->to_string;
         die "Can't init needles from $init_needles_dir; If one doesn't specify NEEDLES_DIR, the needles will be loaded from \$PRODUCTDIR/needles firstly or $needles_dir (\$CASEDIR + $init_needles_dir), check vars.json" unless -d $needles_dir;
     }
-    $bmwqemu::vars{NEEDLES_GIT_HASH} = checkout_git_refspec($needles_dir => 'NEEDLES_GIT_REFSPEC');
+    $tiedvars::vars{NEEDLES_GIT_HASH} = checkout_git_refspec($needles_dir => 'NEEDLES_GIT_REFSPEC');
 
     %needles = ();
     %tags = ();

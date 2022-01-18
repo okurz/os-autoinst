@@ -24,19 +24,19 @@ my $ADR = "http://schemas.xmlsoap.org/ws/2004/08/addressing";
 my $vnc_password = 'we4kP@ss';
 
 sub new ($class) {
-    defined $bmwqemu::vars{AMT_HOSTNAME} or die 'Need variable AMT_HOSTNAME';
-    defined $bmwqemu::vars{AMT_PASSWORD} or die 'Need variable AMT_PASSWORD';
+    defined $tiedvars::vars{AMT_HOSTNAME} or die 'Need variable AMT_HOSTNAME';
+    defined $tiedvars::vars{AMT_PASSWORD} or die 'Need variable AMT_PASSWORD';
 
     # use env to avoid leaking password to logs
     $ENV{'WSMAN_USER'} = 'admin';
-    $ENV{'WSMAN_PASS'} = $bmwqemu::vars{AMT_PASSWORD};
+    $ENV{'WSMAN_PASS'} = $tiedvars::vars{AMT_PASSWORD};
 
     backend::baseclass::handle_deprecate_backend('AMT');
     return $class->SUPER::new;
 }
 
 sub wsman_cmdline ($self) {
-    return ('wsman', '-h', $bmwqemu::vars{AMT_HOSTNAME}, '-P', '16992');
+    return ('wsman', '-h', $tiedvars::vars{AMT_HOSTNAME}, '-P', '16992');
 }
 
 sub wsman ($self, $cmd, $stdin = undef) {
@@ -175,7 +175,7 @@ sub do_start_vm ($self, @) {
         'sut',
         'vnc-base',
         {
-            hostname => $bmwqemu::vars{AMT_HOSTNAME},
+            hostname => $tiedvars::vars{AMT_HOSTNAME},
             password => $vnc_password,
             connect_timeout => 3,
             port => 5900

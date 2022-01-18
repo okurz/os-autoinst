@@ -19,7 +19,7 @@ use autotest;
 use bmwqemu;
 use OpenQA::Test::RunArgs;
 
-$bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+$tiedvars::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
 
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
 like warning {
@@ -162,9 +162,9 @@ subtest 'test always_rollback flag' => sub {
         stderr_like { autotest::run_all } qr/.*stopping overall test execution because snapshotting is disabled.*/, 'reason logged';
     };
     snapshot_subtest 'stopping overall test execution early due to TESTDEBUG' => sub {
-        $bmwqemu::vars{TESTDEBUG} = 1;
+        $tiedvars::vars{TESTDEBUG} = 1;
         stderr_like { autotest::run_all } qr/.*stopping overall test execution because TESTDEBUG has been set.*/, 'reason logged (TESTDEBUG)';
-        delete $bmwqemu::vars{TESTDEBUG};
+        delete $tiedvars::vars{TESTDEBUG};
     };
     $mock_basetest->unmock($_) for qw(runtest test_flags);
     $mock_autotest->unmock($_) for qw(load_snapshot make_snapshot query_isotovideo);
@@ -309,8 +309,8 @@ is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"),
 is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"), 'other');
 
 subtest 'load test successfully when CASEDIR is a relative path' => sub {
-    symlink($bmwqemu::vars{CASEDIR}, 'foo');
-    $bmwqemu::vars{CASEDIR} = 'foo';
+    symlink($tiedvars::vars{CASEDIR}, 'foo');
+    $tiedvars::vars{CASEDIR} = 'foo';
     like warning { loadtest 'start' }, qr{Subroutine run redefined}, 'We get a warning for loading a test a second time';
 };
 

@@ -14,7 +14,7 @@ use Time::Seconds;
 
 sub new ($class) {
     my $self = $class->SUPER::new;
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
 
     $self->{vagrant_cwd} = File::Temp->newdir();
     $self->{up_timeout} = $vars->{VAGRANT_UP_TIMEOUT} // 300;

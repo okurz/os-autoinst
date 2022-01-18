@@ -34,8 +34,8 @@ my $CODES_EXPECTED_BY_MMAPI = {200 => 1};
 
 sub _init () {
     # init $ua and $url
-    my $host = $bmwqemu::vars{OPENQA_URL};
-    my $secret = $bmwqemu::vars{JOBTOKEN};
+    my $host = $tiedvars::vars{OPENQA_URL};
+    my $secret = $tiedvars::vars{JOBTOKEN};
     return unless $host && $secret;
     $url = Mojo::URL->new($host =~ '/' ? $host : "http://$host");
 

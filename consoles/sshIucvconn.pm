@@ -11,7 +11,7 @@ use autodie ':all';
 
 sub connect_remote ($self, $args) {
     my $hostname = $args->{hostname};
-    my $zvmguest = $bmwqemu::vars{ZVM_GUEST};
+    my $zvmguest = $tiedvars::vars{ZVM_GUEST};
 
     # ssh connection to SUT for agetty
     my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $args->{password}, username => 'root');

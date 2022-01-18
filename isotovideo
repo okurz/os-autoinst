@@ -129,7 +129,7 @@ bmwqemu::init();
 for my $arg (@ARGV) {
     if ($arg =~ /^([[:alnum:]_\[\]\.]+)=(.+)/) {
         my $key = uc $1;
-        $bmwqemu::vars{$key} = $2;
+        $tiedvars::vars{$key} = $2;
         diag("Setting forced test parameter $key -> $2");
     }
 }
@@ -154,7 +154,7 @@ sub stop_commands ($reason) {
     diag("stopping command server $pid because $reason");
 
     if ($cmd_srv_port && $reason && $reason eq 'test execution ended') {
-        my $job_token = $bmwqemu::vars{JOBTOKEN};
+        my $job_token = $tiedvars::vars{JOBTOKEN};
         my $url = "http://127.0.0.1:$cmd_srv_port/$job_token/broadcast";
         diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
 
@@ -203,8 +203,8 @@ sub signalhandler ($sig) {
 }
 
 sub init_backend () {
-    $bmwqemu::vars{BACKEND} ||= "qemu";
-    $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
+    $tiedvars::vars{BACKEND} ||= "qemu";
+    $bmwqemu::backend = backend::driver->new($tiedvars::vars{BACKEND});
     return $bmwqemu::backend;
 }
 
@@ -226,7 +226,7 @@ checkout_git_repo_and_branch('CASEDIR');
 #
 # This allows further structuring the test distribution collections with
 # multiple distributions or flavors in one repository.
-$bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
+$tiedvars::vars{PRODUCTDIR} ||= $tiedvars::vars{CASEDIR};
 
 # checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
 checkout_git_repo_and_branch('NEEDLES_DIR');
@@ -237,7 +237,7 @@ bmwqemu::ensure_valid_vars();
 # if specified, or simply store the git hash that has been used. If it is not a
 # git repo fail silently, i.e. store an empty variable
 
-$bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
+$tiedvars::vars{TEST_GIT_HASH} = checkout_git_refspec($tiedvars::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
 
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
@@ -246,7 +246,7 @@ load_test_schedule;
 
 # start the command fork before we get into the backend, the command child
 # is not supposed to talk to the backend directly
-($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
+($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $tiedvars::vars{QEMUPORT} + 1);
 
 testapi::init();
 needle::init();
@@ -265,7 +265,7 @@ if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
 
 # launch debugging tools
 my %debugging_tools;
-$debugging_tools{vncviewer} = ['vncviewer', '-viewonly', '-shared', "localhost:$bmwqemu::vars{VNC}"] if $ENV{RUN_VNCVIEWER};
+$debugging_tools{vncviewer} = ['vncviewer', '-viewonly', '-shared', "localhost:$tiedvars::vars{VNC}"] if $ENV{RUN_VNCVIEWER};
 $debugging_tools{debugviewer} = ["$bmwqemu::scriptdir/debugviewer/debugviewer", 'qemuscreenshot/last.png'] if $ENV{RUN_DEBUGVIEWER};
 for my $tool (keys %debugging_tools) {
     next if fork() != 0;

@@ -12,9 +12,9 @@ use File::Which 'which';
 use File::Basename;
 
 BEGIN {
-    $bmwqemu::vars{DISTRI} = 'unicorn';
-    $bmwqemu::vars{CASEDIR} = '/var/lib/empty';
-    $bmwqemu::vars{NEEDLES_DIR} = dirname(__FILE__) . '/data';
+    $tiedvars::vars{DISTRI} = 'unicorn';
+    $tiedvars::vars{CASEDIR} = '/var/lib/empty';
+    $tiedvars::vars{NEEDLES_DIR} = dirname(__FILE__) . '/data';
 }
 
 use needle;

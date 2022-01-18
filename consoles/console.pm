@@ -35,7 +35,7 @@ sub new ($class, $testapi_console, $args) {
 sub init ($self) {
     # Special keys like Ctrl-Alt-Fx are not passed to the VM by xfreerdp.
     # That means switch from graphical to console is not possible on Hyper-V.
-    $self->{console_hotkey} = ($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv' ? 'alt-f' : 'ctrl-alt-f';
+    $self->{console_hotkey} = ($tiedvars::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv' ? 'alt-f' : 'ctrl-alt-f';
 }
 
 # SUT was e.g. rebooted

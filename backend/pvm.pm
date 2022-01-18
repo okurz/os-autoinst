@@ -38,7 +38,7 @@ sub do_start_vm ($self, @) {
 }
 
 sub do_extract_assets ($self, $args) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     my $hdd_num = $args->{hdd_num};
     my $name = $args->{name};
     my $img_dir = $args->{dir};
@@ -76,7 +76,7 @@ sub do_extract_assets ($self, $args) {
 }
 
 sub pvmctl ($self, $type, $action, @args) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
 
     die "pvmctl: Not enough arguments (at least you should supply a type and an action)" unless ($type && $action);
 
@@ -147,7 +147,7 @@ sub image_exists ($img, $size) {
     runcmd(@cmd);
 }
 sub start_lpar ($self) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     #general settiings
     $vars->{LPAR} = "osauto" . $vars->{WORKER_ID};
     $vars->{CPUS} ||= 1;
@@ -217,14 +217,14 @@ sub start_lpar ($self) {
 }
 
 sub _status ($self) {
-    my $id = $bmwqemu::vars{LPARID};
+    my $id = $tiedvars::vars{LPARID};
     return qx{pvmctl lpar list -i id=$id -d LogicalPartition.state --hide-label};
 }
 
 sub is_shutdown ($self, @) { $self->_status =~ /running/ }
 
 sub do_stop_vm ($self, @) {
-    my $vars = \%bmwqemu::vars;
+    my $vars = \%tiedvars::vars;
     $self->pvmctl("lpar", "power-off") if (!$self->is_shutdown);
     runcmd("rmvterm", "--id", $vars->{LPARID});
     for my $i (1 .. $vars->{NUMDISKS}) {

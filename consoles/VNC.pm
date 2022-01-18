@@ -726,7 +726,7 @@ sub _send_frame_buffer ($self, $args) {
 
 # frame buffer update request
 sub send_update_request ($self, $incremental = undef) {
-    my $time_after_vnc_is_considered_stalled = $bmwqemu::vars{VNC_STALL_THRESHOLD} // 4;
+    my $time_after_vnc_is_considered_stalled = $tiedvars::vars{VNC_STALL_THRESHOLD} // 4;
     # after 2 seconds: send forced update
     # after 4 seconds: turn off screen
     my $time_since_last_update = time - $self->_last_update_received;

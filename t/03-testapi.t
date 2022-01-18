@@ -679,7 +679,7 @@ subtest 'compat_args' => sub {
 };
 
 subtest 'check quiet option on script runs' => sub {
-    $bmwqemu::vars{_QUIET_SCRIPT_CALLS} = 1;
+    $tiedvars::vars{_QUIET_SCRIPT_CALLS} = 1;
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(script_output => 'output');
     $mock_testapi->redefine(wait_serial => sub ($regex, %args) {
@@ -699,27 +699,27 @@ subtest 'check quiet option on script runs' => sub {
     is(script_run('true', quiet => 0, die_on_timeout => 1), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     is(assert_script_run('true', quiet => 0), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     ok(!validate_script_output('script', sub { m/output/ }, quiet => 0), 'validate_script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
-    delete $bmwqemu::vars{_QUIET_SCRIPT_CALLS};
+    delete $tiedvars::vars{_QUIET_SCRIPT_CALLS};
 };
 
 subtest 'host_ip, autoinst_url' => sub {
-    $bmwqemu::vars{QEMUPORT} = 0;
-    $bmwqemu::vars{JOBTOKEN} = '';
-    $bmwqemu::vars{WORKER_HOSTNAME} = 'my_worker_host';
+    $tiedvars::vars{QEMUPORT} = 0;
+    $tiedvars::vars{JOBTOKEN} = '';
+    $tiedvars::vars{WORKER_HOSTNAME} = 'my_worker_host';
     is(autoinst_url('foo'), 'http://my_worker_host:1/foo', 'autoinst_url returns reasonable URL based on WORKER_HOSTNAME');
     is testapi::host_ip, 'my_worker_host', 'host_ip has sane default';
-    $bmwqemu::vars{BACKEND} = 'qemu';
+    $tiedvars::vars{BACKEND} = 'qemu';
     is(autoinst_url('foo'), 'http://10.0.2.2:1/foo', 'autoinst_url returns static IP for qemu');
     is testapi::host_ip, '10.0.2.2', 'host_ip has sane default for qemu';
-    $bmwqemu::vars{QEMU_HOST_IP} = '192.168.42.1';
+    $tiedvars::vars{QEMU_HOST_IP} = '192.168.42.1';
     is(autoinst_url('foo'), 'http://192.168.42.1:1/foo', 'autoinst_url returns configured static IP');
-    $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
+    $tiedvars::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
     is(autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns');
 };
 
 subtest 'data_url' => sub {
     like data_url 'foo', qr{localhost.*data/foo}, 'data_url returns local data reference by default';
-    $bmwqemu::vars{ASSET_3} = 'foo.xml';
+    $tiedvars::vars{ASSET_3} = 'foo.xml';
     like data_url 'ASSET_3', qr{other/foo.xml}, 'data_url returns local data reference by default';
 };
 
@@ -866,9 +866,9 @@ subtest 'mouse_drag' => sub {
 
 subtest 'show_curl_progress_meter' => sub {
     $testapi::serialdev = 'ttyS0';
-    $bmwqemu::vars{UPLOAD_METER} = 1;
+    $tiedvars::vars{UPLOAD_METER} = 1;
     is(testapi::show_curl_progress_meter(), '-o /dev/ttyS0 ', 'show_curl_progress_meter returns curl output parameter pointing to /dev/ttyS0');
-    $bmwqemu::vars{UPLOAD_METER} = 0;
+    $tiedvars::vars{UPLOAD_METER} = 0;
     is(testapi::show_curl_progress_meter(), '', 'show_curl_progress_meter returns "0" when UPLOAD_METER is not set');
 };
 

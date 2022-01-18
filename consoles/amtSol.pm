@@ -28,8 +28,8 @@ sub activate ($self) {
     $self->{serial_pipe}->reader();
 
     my @cmd = ('/usr/sbin/amtterm');
-    push(@cmd, ('-u', 'admin', '-p', $bmwqemu::vars{AMT_PASSWORD}));
-    push(@cmd, ($bmwqemu::vars{AMT_HOSTNAME}));
+    push(@cmd, ('-u', 'admin', '-p', $tiedvars::vars{AMT_PASSWORD}));
+    push(@cmd, ($tiedvars::vars{AMT_HOSTNAME}));
 
     my $amt_console;
     $self->{consolepid} = open($amt_console, '-|', @cmd);

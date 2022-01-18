@@ -28,7 +28,7 @@ my $case_dir_ok = "file://$git_dir#$head";
 my $case_dir = "file://$git_dir#abcdef";
 
 subtest 'failing clone' => sub {
-    %bmwqemu::vars = (
+    %tiedvars::vars = (
         CASEDIR => $case_dir,
     );
     my $path;
@@ -44,7 +44,7 @@ cleanup();
 
 subtest 'successful clone' => sub {
     my $path;
-    %bmwqemu::vars = (
+    %tiedvars::vars = (
         CASEDIR => $case_dir_ok,
     );
     my $out = combined_from {
@@ -53,7 +53,7 @@ subtest 'successful clone' => sub {
     is $path, $clone_dir, 'checkout_git_repo_and_branch returned correct path';
     like $out, qr{Cloning git URL.*Fetching more remote objects}s, 'git clone was called again to fetch a git hash';
 
-    %bmwqemu::vars = (
+    %tiedvars::vars = (
         CASEDIR => $case_dir_ok,
     );
     $out = combined_from {

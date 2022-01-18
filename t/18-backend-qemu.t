@@ -34,9 +34,9 @@ $proc->redefine(connect_qmp => undef);
 $proc->redefine(init_blockdev_images => undef);
 ok(my $backend = backend(), 'backend can be created');
 # disable any graphics display in tests
-$bmwqemu::vars{QEMU_APPEND} = '-nographic';
+$tiedvars::vars{QEMU_APPEND} = '-nographic';
 # as needed to start backend
-$bmwqemu::vars{VNC} = '1';
+$tiedvars::vars{VNC} = '1';
 my $jsonrpc = Test::MockModule->new('myjsonrpc');
 $jsonrpc->redefine(read_json => undef);
 my $backend_mock = Test::MockModule->new('backend::qemu', no_auto => 1);
@@ -62,9 +62,9 @@ subtest 'using Open vSwitch D-Bus service' => sub {
     my $expected = qr/Open vSwitch command.*show.*arguments 'foo bar'.*(The name.*not provided|Failed to connect)/;
     my $msg = 'error about missing service';
     like exception { $backend->_dbus_call('show', 'foo', 'bar') }, $expected, $msg . ' in exception';
-    $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
+    $tiedvars::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
     combined_like { ok($backend->_dbus_call('show', 'foo', 'bar'), 'failed dbus call ignored gracefully') } $expected, $msg;
-    $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
+    $tiedvars::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
     $backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
     like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
 };
@@ -135,13 +135,13 @@ my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 $mock_bmwqemu->noop('log_call', 'fctwarn', 'diag');
 
 sub qemu_cmdline (%args) {
-    $bmwqemu::vars{$_} = $args{$_} for keys %args;
+    $tiedvars::vars{$_} = $args{$_} for keys %args;
     $backend = backend();
     croak 'Failed to start qemu backend' unless $backend->start_qemu;
     return join(' ', $backend->{proc}->gen_cmdline);
 }
 
-$bmwqemu::vars{OFW} = 1;
+$tiedvars::vars{OFW} = 1;
 like qemu_cmdline(), qr/cap-cfpc=broken/, 'OFW workarounds applied';
 
 # test QEMU_HUGE_PAGES_PATH with different options
@@ -149,11 +149,11 @@ subtest qemu_huge_pages_option => sub {
     my $cmdline = qemu_cmdline(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
     like $cmdline, qr/-mem-prealloc/, '-mem-prealloc option added';
     like $cmdline, qr|-mem-path /no/dev/hugepages/|, '-mem-path /no/dev/hugepages/';
-    delete $bmwqemu::vars{QEMU_HUGE_PAGES_PATH};
+    delete $tiedvars::vars{QEMU_HUGE_PAGES_PATH};
 };
 
 subtest qemu_tpm_option => sub {
-    $bmwqemu::vars{QEMUTPM_PATH_PREFIX} = "$dir/mytpm";
+    $tiedvars::vars{QEMUTPM_PATH_PREFIX} = "$dir/mytpm";
     my $runcmd;
     $backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
     my $cmdline = qemu_cmdline(QEMUTPM => 'instance', WORKER_INSTANCE => 3);
