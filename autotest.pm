@@ -179,16 +179,13 @@ sub set_current_test ($test) {
 }
 
 sub write_test_order () {
-    my @result;
-    for my $t (@testorder) {
-        push(
-            @result,
-            {
-                name => $t->{name},
-                category => $t->{category},
-                flags => $t->test_flags(),
-                script => $t->{script}});
+    my @result = map { {
+        name => $_->{name},
+        category => $_->{category},
+        flags => $_->test_flags(),
+        script => $_->{script}
     }
+    } @testorder;
     bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
 }
 
