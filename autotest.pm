@@ -145,10 +145,7 @@ sub loadtest ($script, %args) {
         $nr = $nr eq '' ? 1 : $nr + 1;
         $test->{name} = join("#", $name, $nr);
     }
-    if ($args{name}) {
-        $test->{name} = $args{name};
-    }
-
+    $test->{name} = $args{name} if $args{name};
     $tests{$fullname . $nr} = $test;
 
     return unless $test->is_applicable;
@@ -166,31 +163,19 @@ our $last_milestone;
 our $last_milestone_console;
 
 sub parse_test_path ($script_path) {
-    unless ($script_path =~ m,(\w+)/([^/]+)\.p[my]$,) {
-        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.p[my]\n";
-    }
-    my $category = $1;
-    my $name = $2;
+    die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.p[my]\n" unless $script_path =~ m,(\w+)/([^/]+)\.p[my]$,;
+    my ($category, $name) = ($1, $2);
     if ($category ne 'other') {
         # show full folder hierarchy as category for non-sideloaded tests
         my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.p[my]$,;
-        if ($script_path =~ $pattern) {
-            $category = $2;
-        }
+        $category = $2 if $script_path =~ $pattern;
     }
     return ($name, $category);
 }
 
 sub set_current_test ($test) {
     $current_test = $test;
-    query_isotovideo(
-        'set_current_test',
-        $current_test ?
-          {
-            name => $current_test->{name},
-            full_name => $current_test->{fullname},
-          }
-        : {});
+    query_isotovideo(set_current_test => $current_test ?  {name => $current_test->{name}, full_name => $current_test->{fullname}} : {});
 }
 
 sub write_test_order () {
@@ -233,7 +218,7 @@ sub run_all () {
     my $died = 0;
     my $completed = 0;
     $tests_running = 1;
-    eval { $completed = autotest::runalltests(); };
+    eval { $completed = autotest::runalltests() };
     if ($@) {
         warn $@;
         $died = 1;    # test execution died
@@ -300,18 +285,13 @@ sub start_process () {
 
 sub query_isotovideo ($cmd, $args = undef) {
     # deep copy
-    my %json;
-    if ($args) {
-        %json = %$args;
-    }
-    $json{cmd} = $cmd;
+    my %json = $args ? %$args : (cmd => $cmd);
 
     die "isotovideo is not initialized. Ensure that you only call test API functions from test modules, not schedule code\n" unless defined $isotovideo;
     myjsonrpc::send_json($isotovideo, \%json);
 
     # wait for response (if test is paused, this will block until resume)
     my $rsp = myjsonrpc::read_json($isotovideo);
-
     return $rsp->{ret};
 }
 
@@ -331,14 +311,7 @@ sub runalltests () {
         my $fullname = $t->{fullname};
 
         if (!$vmloaded && $fullname eq $firsttest) {
-            if ($bmwqemu::vars{SKIPTO}) {
-                if ($bmwqemu::vars{TESTDEBUG}) {
-                    load_snapshot('lastgood');
-                }
-                else {
-                    load_snapshot($firsttest);
-                }
-            }
+            load_snapshot($bmwqemu::vars{TESTDEBUG} ? 'lastgood' : $firsttest) if $bmwqemu::vars{SKIPTO};
             $vmloaded = 1;
         }
         if (!$vmloaded) {
@@ -414,9 +387,7 @@ sub loadtestdir ($dir) {
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;
-    foreach my $script (glob "$dir/*.pm") {
-        loadtest($script);
-    }
+    loadtest($_) for (glob "$dir/*.pm");
 }
 
 1;
