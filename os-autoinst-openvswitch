@@ -37,6 +37,7 @@ GetOptions(\%options, 'help|h|?') or usage(1);
 usage(0) if $options{help};
 
 sub new ($class, $service) {
+    print "IN NEW";
     my $self = $class->SUPER::new($service, '/switch');
     bless $self, $class;
     $self->init_switch;
@@ -51,7 +52,9 @@ sub init_switch ($self) {
         print "Waiting for bridge '$self->{BRIDGE}' to be created and configured...\n";
         sleep 1;
     }
-    system('ovs-vsctl', 'br-exists', $self->{BRIDGE});
+    #system('ovs-vsctl', 'br-exists', $self->{BRIDGE});
+    system('/usr/bin/false');
+    print "HERE";
 
     for (my $timeout = $ENV{OS_AUTOINST_OPENVSWITCH_INIT_TIMEOUT} // ONE_MINUTE; $timeout > 0; --$timeout) {
         my $bridge_conf = `ip addr show $self->{BRIDGE}`;
