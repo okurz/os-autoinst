@@ -659,4 +659,14 @@ sub rollback_activated_consoles () {
     return;
 }
 
+sub is_serial_terminal () {
+    state $ret;
+    state $last_seen = '';
+    if (defined $selected_console && $selected_console ne $last_seen) {
+        $last_seen = $selected_console;
+        $ret = query_isotovideo('backend_is_serial_terminal', {});
+    }
+    return $ret->{yesorno};
+}
+
 1;

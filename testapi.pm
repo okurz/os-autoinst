@@ -816,15 +816,7 @@ For more info see consoles/virtio_console.pm and consoles/serial_screen.pm.
 
 =cut
 
-sub is_serial_terminal () {
-    state $ret;
-    state $last_seen = '';
-    if (defined current_console() && current_console() ne $last_seen) {
-        $last_seen = current_console();
-        $ret = query_isotovideo('backend_is_serial_terminal', {});
-    }
-    return $ret->{yesorno};
-}
+sub is_serial_terminal () { autotest::is_serial_terminal }
 
 
 =head2 wait_serial
