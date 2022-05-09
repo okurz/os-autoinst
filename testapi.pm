@@ -135,7 +135,7 @@ Used for internal initialization, do not call from tests.
 
 =cut
 
-sub init {
+sub init () {
     if (get_var('OFW') || get_var('BACKEND', '') =~ /s390x|pvm_hmc/) {
         $serialdev = "hvc0";
     }
@@ -176,9 +176,7 @@ Saves screenshot of current SUT screen.
 
 =cut
 
-sub save_screenshot {
-    return $autotest::current_test->take_screenshot;
-}
+sub save_screenshot () { $autotest::current_test->take_screenshot }
 
 =head2 record_soft_failure
 
@@ -711,8 +709,8 @@ into C<wait_still_screen> for details.
 
 =cut
 
-sub assert_still_screen(@) {
-    wait_still_screen(@_) or die 'assert_still_screen failed to detect a still screen';
+sub assert_still_screen (@args) {
+    wait_still_screen(@args) or die 'assert_still_screen failed to detect a still screen';
 }
 
 =head1 test variable access
@@ -830,7 +828,7 @@ For more info see consoles/virtio_console.pm and consoles/serial_screen.pm.
 
 =cut
 
-sub is_serial_terminal() {
+sub is_serial_terminal () {
     state $ret;
     state $last_seen = '';
     if (defined current_console() && current_console() ne $last_seen) {
@@ -1255,9 +1253,7 @@ I<The implementation is distribution specific and not always available.>
 
 =cut
 
-sub become_root() {
-    return $distri->become_root;
-}
+sub become_root () { $distri->become_root }
 
 =head2 ensure_installed
 
@@ -1269,9 +1265,7 @@ I<The implementation is distribution specific and not always available.>
 
 =cut
 
-sub ensure_installed(@) {
-    return $distri->ensure_installed(@_);
-}
+sub ensure_installed (@args) { $distri->ensure_installed(@args) }
 
 =head2 hashed_string
 
@@ -1738,7 +1732,7 @@ if you did something to the system that affects the console (e.g. trigger reboot
 
 =cut
 
-sub reset_consoles() {
+sub reset_consoles () {
     query_isotovideo('backend_reset_consoles');
     return;
 }
@@ -1751,9 +1745,7 @@ return C<undef>.
 
 =cut
 
-sub current_console() {
-    return $autotest::selected_console;
-}
+sub current_console () { $autotest::selected_console }
 
 =head1 audio support
 
@@ -1905,8 +1897,7 @@ This method is fatal in case the network device doesn't exist.
 
 =cut
 
-sub switch_network {
-    my (%nargs) = @_;
+sub switch_network (%nargs) {
     bmwqemu::log_call(%nargs);
     query_isotovideo(backend_switch_network => \%nargs);
 }
@@ -1976,7 +1967,7 @@ I<Currently only qemu backend is supported.>
 
 =cut
 
-sub freeze_vm() {
+sub freeze_vm () {
     # While it might be a good idea to allow the user to stop the vm within a test
     # we're not encouraging them to do that outside a post_fail_hook or at any point
     # in the test code.
@@ -1997,7 +1988,7 @@ I<Currently only qemu backend is supported.>
 
 =cut
 
-sub resume_vm() {
+sub resume_vm () {
     bmwqemu::log_call();
     query_isotovideo('backend_cont_vm');
 }
@@ -2069,9 +2060,7 @@ Write a diagnostic message to the logfile. In color, if possible.
 
 =cut
 
-sub diag(@) {
-    return bmwqemu::diag(@_);
-}
+sub diag (@args) { bmwqemu::diag(@args) }
 
 =head2 host_ip
 
@@ -2082,7 +2071,7 @@ In a kvm instance you reach the VM's host under default 10.0.2.2
 
 =cut
 
-sub host_ip() { check_var('BACKEND', 'qemu') ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME') }
+sub host_ip () { check_var('BACKEND', 'qemu') ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME') }
 
 =head2 autoinst_url
 
@@ -2252,7 +2241,7 @@ A typical call would look like:
 
 =cut
 
-sub show_curl_progress_meter { get_var('UPLOAD_METER') ? "-o /dev/$serialdev " : '' }
+sub show_curl_progress_meter () { get_var('UPLOAD_METER') ? "-o /dev/$serialdev " : '' }
 
 =head2 backend_get_wait_still_screen_on_here_doc_input
 
@@ -2262,7 +2251,7 @@ the here-document input can yield invalid script content.
 This function returns the value to be used by C<wait_still_screen> before
 starting to write the script into the here document.
 =cut
-sub backend_get_wait_still_screen_on_here_doc_input {
+sub backend_get_wait_still_screen_on_here_doc_input () {
     state $ret;
     $ret = query_isotovideo('backend_get_wait_still_screen_on_here_doc_input', {}) unless defined($ret);
     return get_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => $ret);

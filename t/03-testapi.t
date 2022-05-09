@@ -197,7 +197,7 @@ subtest 'switch_network' => sub {
 subtest 'type_string with wait_still_screen' => sub {
     my $wait_still_screen_called = 0;
     my $module = Test::MockModule->new('testapi');
-    $module->redefine(wait_still_screen => sub { $wait_still_screen_called = 1; });
+    $module->redefine(wait_still_screen => sub () { $wait_still_screen_called = 1 });
     type_string 'hallo', wait_still_screen => 1;
     is_deeply($cmds, [{cmd => 'backend_type_string', text => 'hallo', max_interval => 250}]);
     $cmds = [];
@@ -313,7 +313,7 @@ subtest 'script_run' => sub {
 
 subtest 'check_assert_screen' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
+    $mock_testapi->redefine(_handle_found_needle => sub ($needle) { $needle });
 
     my $mock_tinycv = Test::MockModule->new('tinycv');
     $mock_tinycv->redefine(from_ppm => sub : prototype($) { return bless({} => __PACKAGE__); });
@@ -513,7 +513,7 @@ sub script_output_test ($is_serial_terminal) {
     $mock_testapi->noop('type_string');
     $mock_testapi->noop('send_key');
     $mock_testapi->redefine(hashed_string => 'XXX');
-    $mock_testapi->redefine(is_serial_terminal => sub { return $is_serial_terminal });
+    $mock_testapi->redefine(is_serial_terminal => sub () { $is_serial_terminal });
 
     $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-0-");
     is(script_output('echo foo'), 'foo', 'sucessfull retrieves output of script');
@@ -527,7 +527,7 @@ sub script_output_test ($is_serial_terminal) {
     $mock_testapi->redefine(wait_serial => "XXXfoo\nSCRIPT_FINISHEDXXX-1-");
     is(script_output('echo foo', undef, proceed_on_failure => 1), 'foo', 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
 
-    $mock_testapi->redefine(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
+    $mock_testapi->redefine(wait_serial => sub () { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
     like(exception { script_output('timeout'); }, qr/timeout/, 'die expected with timeout');
 
     subtest 'script_output check error codes' => sub {
