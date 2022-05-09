@@ -596,7 +596,7 @@ similarity_level is 50.
 
 =cut
 
-sub wait_screen_change : prototype($@) {
+sub wait_screen_change : prototype($@) {  # no:style:signatures
     my ($callback, $timeout, %args) = @_;
     $timeout ||= 10;
     $args{similarity_level} //= 50;
