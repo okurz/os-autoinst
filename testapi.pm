@@ -168,10 +168,7 @@ You can use distribution object to implement distribution specific helpers.
 
 =cut
 
-sub set_distribution {    # no:style:signatures
-    ($distri) = @_;
-    return $distri->init();
-}
+sub set_distribution ($distri) { $distri->init() }
 
 =for stopwords SUT
 
