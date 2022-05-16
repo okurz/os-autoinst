@@ -757,9 +757,7 @@ Returns whether the test variable C<$variable> is equal to C<$value>.
 
 =cut
 
-sub check_var ($var, $val) {
-    return defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val;
-}
+sub check_var ($var, $val) { defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val }
 
 =head2 get_var_array
 
@@ -853,8 +851,7 @@ Examples:
 
 =cut
 
-sub wait_serial {    # no:style:signatures
-    my $regexp = shift;
+sub wait_serial ($regexp) {
     my %args = compat_args(
         {
             regexp => $regexp,
@@ -896,14 +893,12 @@ I<The implementation is distribution specific and not always available.>
 
 =cut
 
-sub x11_start_program {    # no:style:signatures
-    my ($program, @args) = @_;
+sub x11_start_program ($program, @args) {
     bmwqemu::log_call(program => $program, @args);
     return $distri->x11_start_program($program, @args);
 }
 
-sub _handle_script_run_ret {    # no:style:signatures
-    my ($ret, $cmd, %args) = @_;
+sub _handle_script_run_ret ($ret, $cmd, %args) {
     return autotest::croak assert_script_run => "command '$cmd' timed out" unless defined $ret;
     my $die_msg = "command '$cmd' failed";
     $die_msg .= ": $args{fail_message}" if $args{fail_message};
@@ -935,8 +930,7 @@ should work on *nix operating systems with a configured serial device.>
 
 =cut
 
-sub assert_script_run {    # no:style:signatures
-    my $cmd = shift;
+sub assert_script_run ($cmd, @) {
     my %args = compat_args(
         {
             # assert_script_run originally had the implicit default timeout of
@@ -985,8 +979,7 @@ device C<$serialdev>.
 
 =cut
 
-sub script_run {    # no:style:signatures
-    my $cmd = shift;
+sub script_run ($cmd, @) {
     my %args = compat_args(
         {
             timeout => $bmwqemu::default_timeout,
@@ -1021,9 +1014,7 @@ device C<$serialdev>.
 
 =cut
 
-sub background_script_run {    # no:style:signatures
-    my ($cmd, %args) = @_;
-
+sub background_script_run ($cmd, %args) {
     bmwqemu::log_call(cmd => $cmd, %args);
     return $distri->background_script_run($cmd, %args);
 }
@@ -1043,7 +1034,7 @@ C<$serialdev>.
 
 =cut
 
-sub assert_script_sudo {    # no:style:signatures
+sub assert_script_sudo ($cmd, $wait) {    # no:style:signatures
     my ($cmd, $wait) = @_;
     # Keep in mind C<str> needs to agree with the corresponding C<str> marker
     # defined on C<$distri->script_sudo> itself.
@@ -1066,10 +1057,8 @@ I<The implementation is distribution specific and not always available.>
 
 =cut
 
-sub script_sudo {    # no:style:signatures
-    my $name = shift;
-    my $wait = shift // 2;
-
+sub script_sudo ($name, $wait = undef) {
+    $wait //= 2;
     bmwqemu::log_call(name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
 }
@@ -1100,8 +1089,7 @@ and can be tweaked by setting the C<$wait> positional parameter.
 
 =cut
 
-sub script_output {    # no:style:signatures
-    my $script = shift;
+sub script_output ($script, @) {
     my %args = testapi::compat_args(
         {
             timeout => undef,
@@ -1183,8 +1171,7 @@ alternatively matches a regular expression. Use it as
 
 =cut
 
-sub validate_script_output {    # no:style:signatures
-    my ($script, $check, @args) = @_;
+sub validate_script_output ($script, $check, @args) {
     my %args = compat_args(
         {
             title => 'validate_script_output',
@@ -1296,12 +1283,13 @@ Special characters naming:
 
 =cut
 
-sub send_key {    # no:style:signatures
-    my ($key, %args) = @_;
+sub send_key ($key, @args) {
+    my %args = (@args == 1) ? (do_wait => +shift()) : @args;
+    $args{do_wait} //= 0;
     $args{wait_screen_change} //= 0;
     bmwqemu::log_call(key => $key, %args);
     if ($args{wait_screen_change}) {
-        wait_screen_change { query_isotovideo('backend_send_key', {key => $key}) };
+        wait_screen_change {query_isotovideo('backend_send_key', {key => $key})};
     }
     else {
         query_isotovideo('backend_send_key', {key => $key});
@@ -1391,12 +1379,9 @@ enter a command line.
 
 =cut
 
-sub type_string {    # no:style:signatures
-
+sub type_string ($string, @args) {
     # special argument handling for backward compat
-    my $string = shift;
-    # backward compat
-    my %args = (@_ == 1) ? (max_interval => $_[0]) : @_;
+    my %args = @args == 1 ? (max_interval => $args[0]) : @args;
     $string .= "\n" if $args{lf};
 
     if (is_serial_terminal) {
@@ -1448,8 +1433,7 @@ You can pass the same optional parameters as for C<type_string> function.
 
 =cut
 
-sub type_password {    # no:style:signatures
-    my ($string, %args) = @_;
+sub type_password ($string = undef, %args) {
     $string //= $password;
     type_string $string, secret => 1, max_interval => ($args{max_interval} // 100), %args;
 }
@@ -1466,8 +1450,8 @@ You can pass the same optional parameters as for C<type_string> function.
 
 =cut
 
-sub enter_cmd {    # no:style:signatures
-    type_string shift, lf => 1, @_;
+sub enter_cmd ($string, @) {
+    type_string $string, lf => 1, @_;
 }
 
 =head1 mouse support
