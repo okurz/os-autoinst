@@ -85,26 +85,27 @@ sub become_root ($self) {
     testapi::enter_cmd('cd /tmp');
 }
 
-=head 2 disable_key_repeat
-
-  disable_key_repeat()
-
-Disable the key repetition in a Linux tty. Needs to be called in each newly
-activated tty, e.g. in C<activate_console> in the distribution implementation.
-
-kbdrate can control the key repeat rate and delay but only if Linux controls
-the input stream. For this suggested way is to use "virtio-keyboard" which is
-enabled in os-autoinst by default. Alternatively set the Linux kernel parameter
-"atkbd.softrepeat=1".
-
-=cut
-
 sub disable_key_repeat ($self) {
     testapi::enter_cmd('kbdrate -s -d99999');
 }
 
 sub _handle_cmd_typing_error ($cmd, $args) { ($args->{check_typing_cmd} // 1 ? \&croak : \&fctwarn)->("typing command '$cmd' timed out") }
 
+sub _handle_serial_marker ($cmd, $separator = ';', $res_str = '$?', %args) {
+    $args{timeout} //= 0;
+    my $str = testapi::hashed_string("SR" . $cmd . ($args{timeout} // ''));
+    my $marker = "$separator echo $str-$res_str-" . ($args{output} ? "Comment: $args{output}" : '');
+    if (testapi::is_serial_terminal) {
+        testapi::type_string($marker, max_interval => $args{max_interval});
+        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128)
+          or _handle_cmd_typing_error($cmd, \%args);
+        testapi::type_string("\n", max_interval => $args{max_interval});
+    }
+    else {
+        testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
+    }
+    return testapi::wait_serial(qr/$str-\d+-/, timeout => $args{timeout}, quiet => $args{quiet});
+}
 =head2 script_run
 
   script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet] [,max_interval => $max_interval])
@@ -141,25 +142,16 @@ sub script_run ($self, $cmd, @args) {
             max_interval => testapi::DEFAULT_MAX_INTERVAL
         }, ['timeout'], @args);
 
-    if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
-    }
+    testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet}) if testapi::is_serial_terminal;
     testapi::type_string "$cmd", max_interval => $args{max_interval};
     if ($args{timeout} > 0) {
         die "Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
           if $cmd =~ qr/(?<!\\)&$/;
-        my $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
-        my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
-        if (testapi::is_serial_terminal) {
-            testapi::type_string($marker, max_interval => $args{max_interval});
-            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => length($cmd) + 128)
-              or _handle_cmd_typing_error($cmd, \%args);
-            testapi::type_string("\n", max_interval => $args{max_interval});
-        }
-        else {
-            testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
-        }
-        my $res = testapi::wait_serial(qr/$str-\d+-/, timeout => $args{timeout}, quiet => $args{quiet});
+        my $res = _handle_serial_marker($cmd, ';', '$?', %args);
+        return unless $res;
+        my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
+        return ($res =~ /$str-(\d+)-/)[0];
+    }
         return unless $res;
         return ($res =~ /$str-(\d+)-/)[0];
     }
@@ -185,23 +177,11 @@ Use C<quiet> to avoid recording serial_results.
 =cut
 
 sub background_script_run ($self, $cmd, %args) {
-    if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
-    }
-
+    testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet}) if testapi::is_serial_terminal;
     $cmd = "( $cmd )";
     testapi::type_string $cmd;
-    my $str = testapi::hashed_string('SR' . $cmd);
-    my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
-    if (testapi::is_serial_terminal) {
-        testapi::type_string($marker);
-        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}) or _handle_cmd_typing_error($cmd, \%args);
-        testapi::type_string("\n");
-    }
-    else {
-        testapi::type_string "$marker > /dev/$testapi::serialdev\n";
-    }
-    my $res = testapi::wait_serial(qr/$str-\d+-/, quiet => $args{quiet});
+    my $res = _handle_serial_marker($cmd, '&', '$!', %args);
+    my $str = testapi::hashed_string("SR" . $cmd);
     die 'PID marker not found' unless ($res =~ m/$str-(\d+)-/);
     return $1;
 }
