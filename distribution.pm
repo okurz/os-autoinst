@@ -85,8 +85,22 @@ sub become_root ($self) {
     testapi::enter_cmd('cd /tmp');
 }
 
+<<<<<<< HEAD
 sub disable_key_repeat ($self) {
     testapi::enter_cmd('kbdrate -s -d99999');
+||||||| parent of ed4ec939 (WIP -- try to write serial script run markers from bash SUT instead of worker perl to have pretty and more reliable typing)
+sub _handle_serial_marker ($cmd, $separatator = ';', $res_str = '$?', %args) {
+    $args{timeout} //= 0;
+    my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
+    my $marker = "$separator echo $str-$res_str-" . ($args{output} ? "Comment: $args{output}" : '');
+    if (testapi::is_serial_terminal) {
+        testapi::type_string($marker);
+        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
+        testapi::type_string("\n");
+    }
+    else {
+        testapi::type_string "$marker > /dev/$testapi::serialdev\n";
+    }
 }
 
 sub _handle_cmd_typing_error ($cmd, $args) { ($args->{check_typing_cmd} // 1 ? \&croak : \&fctwarn)->("typing command '$cmd' timed out") }
