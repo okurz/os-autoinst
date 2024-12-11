@@ -14,6 +14,9 @@ use bmwqemu ();
 use constant DEBUG_JSON => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8_000_000;
 
+# hash for keeping state
+our $sockets;
+
 sub is_debug () { DEBUG_JSON || $bmwqemu::vars{DEBUG_JSON_RPC} }
 
 sub send_json ($to_fd, $cmd) {
@@ -42,8 +45,47 @@ sub send_json ($to_fd, $cmd) {
     return $cmdcopy{json_cmd_token};
 }
 
-# hash for keeping state
-our $sockets;
+sub do_read_json ($cjx, $multi, $fd, $socket, $select, $cmd_token, $results) {
+    my $hash = $cjx->incr_parse();
+    # remember the trailing text
+    warn("do_read_json");
+    if ($hash) {
+        warn("do_read_json: if hash true");
+        $sockets->{$fd} = $cjx->incr_text();
+        bmwqemu::diag("read_json($fd) json_cmd_token=" . $hash->{json_cmd_token} // 'no-token') if is_debug;
+        if ($hash->{QUIT}) {
+            bmwqemu::diag("received magic close");
+            push @$results, undef;
+            return 1;
+        }
+        confess "ERROR: the token does not match - questions and answers not in the right order" if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token; # uncoverable statement
+        push @$results, $hash;
+        # parse all lines from buffer
+        next if $multi;
+        return 1;
+    }
+    elsif ($multi and @$results) {
+        warn("do_read_json: multi");
+        # read at least one item in list context
+        return 1;
+    }
+
+    # wait for next read
+    until (my @res = $select->can_read) {
+        warn("do_read_json: in until");
+        # throw an error except can_read has been interrupted
+        my $error = $!;
+        confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
+        # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
+        bmwqemu::diag("read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if is_debug;
+    }
+
+    my $qbuffer;
+    warn("do_read_json: before sysread");
+    my $bytes = sysread($socket, $qbuffer, READ_BUFFER) or do { bmwqemu::fctwarn("sysread failed: $!") if is_debug and return undef };
+    $cjx->incr_parse($qbuffer);
+    return undef;
+}
 
 # utility function
 sub read_json ($socket, $cmd_token = undef, $multi = undef) {
@@ -57,50 +99,15 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
         $cjx->incr_parse($buffer);
     }
 
-    my $s = IO::Select->new();
-    $s->add($socket);
+    my $select = IO::Select->new();
+    $select->add($socket);
 
     my @results;
 
     # the goal here is to find the end of the next valid JSON - and don't
     # add more data to it. As the backend sends things unasked, we might
     # run into the next message otherwise
-    while (1) {
-        my $hash = $cjx->incr_parse();
-        # remember the trailing text
-        if ($hash) {
-            $sockets->{$fd} = $cjx->incr_text();
-            bmwqemu::diag("read_json($fd) json_cmd_token=" . $hash->{json_cmd_token} // 'no-token') if is_debug;
-            if ($hash->{QUIT}) {
-                bmwqemu::diag("received magic close");
-                push @results, undef;
-                last;
-            }
-            confess "ERROR: the token does not match - questions and answers not in the right order" if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token; # uncoverable statement
-            push @results, $hash;
-            # parse all lines from buffer
-            next if $multi;
-            last;
-        }
-        elsif ($multi and @results) {
-            # read at least one item in list context
-            last;
-        }
-
-        # wait for next read
-        until (my @res = $s->can_read) {
-            # throw an error except can_read has been interrupted
-            my $error = $!;
-            confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
-            # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
-            bmwqemu::diag("read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if is_debug;
-        }
-
-        my $qbuffer;
-        my $bytes = sysread($socket, $qbuffer, READ_BUFFER) or do { bmwqemu::fctwarn("sysread failed: $!") if is_debug and return undef };
-        $cjx->incr_parse($qbuffer);
-    }
-
+    do { } until do_read_json ($cjx, $multi, $fd, $socket, $select, $cmd_token, \@results);
     return $multi ? @results : $results[0];
 }
 

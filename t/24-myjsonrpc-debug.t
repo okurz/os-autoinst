@@ -38,6 +38,7 @@ sub debug () {
     is_deeply($read, $send1, "read_json returns what send_json sent");
 }
 subtest debug_json => sub {
+    debug();
     my @warnings = warnings { debug() };
     like($warnings[0], qr{send_json}, "debug send_json");
     like($warnings[1], qr{read_json}, "debug read_json");
