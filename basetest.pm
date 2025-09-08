@@ -431,6 +431,16 @@ sub record_resultfile ($self, $title, $output, %nargs) {
     $self->write_resultfile($filename, $output);
 }
 
+sub _is_valid_result ($result) { $result =~ /^(ok|fail|softfail)$/ }
+
+sub record_info ($self, $title, $output, %nargs) {
+    $nargs{result} //= 'ok';
+    die 'unsupported $result \'' . $nargs{result} . '\'' unless _is_valid_result($nargs{result});
+    $output //= '';
+    bmwqemu::log_call(title => $title, output => $output, %nargs);
+    $self->record_resultfile($title, $output, %nargs);
+}
+
 sub record_serialresult ($self, $ref, $res, $string = undef, %args) {
     $string //= '';
     # take screenshot for documentation (screenshot does not represent fail itself)
@@ -599,6 +609,27 @@ sub verify_sound_image ($self, $imgpath, $mustmatch, $check) {
     else {
         $self->record_screenfail(@needles_params, result => 'fail', overall => 'fail');
     }
+    return;
+}
+
+# this is called if the test failed and the framework loaded a VM
+# snapshot - all consoles activated in the test's run function loose their
+# state
+sub rollback_activated_consoles ($self) {
+    for my $console (@{$self->{activated_consoles}}) {
+        # the backend will only reset its state, and call activate
+        # the next time - the console itself might actually not be
+        # able to activate a 2nd time, but that's up to the console class
+        autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
+    }
+    $self->{activated_consoles} = [];
+
+    if (defined($autotest::last_milestone_console)) {
+        my $ret = autotest::query_isotovideo('backend_select_console',
+            {testapi_console => $autotest::last_milestone_console});
+        die $ret->{error} if $ret->{error};
+    }
+
     return;
 }
 

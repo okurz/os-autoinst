@@ -241,11 +241,7 @@ tag on the result file.
 =cut
 
 sub record_info ($title, $output = undef, %nargs) {
-    $nargs{result} //= 'ok';
-    die 'unsupported $result \'' . $nargs{result} . '\'' unless _is_valid_result($nargs{result});
-    $output //= '';
-    bmwqemu::log_call(title => $title, output => $output, %nargs);
-    $autotest::current_test->record_resultfile($title, $output, %nargs);
+    $autotest::current_test->record_info($title, $output, %nargs);
 }
 
 =head2 force_soft_failure
