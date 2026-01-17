@@ -73,6 +73,12 @@ fi
 export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
 export OS_AUTOINST_MAKE_TOOL=$make_path
 
+# Auto-detect parallelism if not specified
+if [[ ! "$PROVE_ARGS" =~ -j ]]; then
+    jobs=$(nproc 2> /dev/null || echo 1)
+    PROVE_ARGS="$PROVE_ARGS -j$jobs"
+fi
+
 args=()
 # use unbuffer if it was found so e.g. timestamps on OBS builds will be useful
 # note: When executing tests with prove it seems that the output is only flushed after one test has finished unless there's a terminal.
