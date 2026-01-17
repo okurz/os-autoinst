@@ -37,8 +37,9 @@ sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
     $args{opts} //= '';
     $args{exit_code} //= 1;
+    my $cmdsrv_port = 15000 + int(rand(5000));
     chdir "$Bin/..";
-    my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, split(' ', $args{opts}));
+    my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, "cmdsrv_port=$cmdsrv_port", split(' ', $args{opts}));
     chdir $pool_dir;
     note "Starting isotovideo with: @cmd";
     qx(cd $toplevel_dir && @cmd);
