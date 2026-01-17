@@ -52,7 +52,8 @@ path('vars.json')->spew(<<EOV);
 EOV
 # create screenshots
 path('live_log')->touch;
-system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d 2>&1 | tee $pool_dir/autoinst-log.txt");
+my $cmdsrv_port = 15000 + int(rand(5000));
+system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d cmdsrv_port=$cmdsrv_port 2>&1 | tee $pool_dir/autoinst-log.txt");
 my $log = path('autoinst-log.txt')->slurp;
 my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : 'UNKNOWN';
 like $log, qr/Current version is $version [interface v[0-9]+]/, 'version read from git';

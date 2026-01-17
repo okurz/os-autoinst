@@ -94,7 +94,8 @@ sub start_server ($self) {
     # start the command fork before we get into the backend, the command child
     # is not supposed to talk to the backend directly
     my ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port);
-    ($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
+    $cmd_srv_port = $bmwqemu::vars{CMDSRV_PORT} // ($bmwqemu::vars{QEMUPORT} + 1);
+    ($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port);
     $self->cmd_srv_process($cmd_srv_process);
     $self->cmd_srv_fd($cmd_srv_fd);
     $self->cmd_srv_port($cmd_srv_port);

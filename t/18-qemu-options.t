@@ -44,7 +44,8 @@ my $log = '';
 
 sub run_isotovideo (@args) {
     $vars_json->spew(encode_json({@common_options, @args}));
-    ok system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d qemu_disable_snapshots=1 2>&1 | tee $pool_dir/autoinst-log.txt") == 0, 'zero exit status';
+    my $cmdsrv_port = 15000 + int(rand(5000));
+    ok system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d qemu_disable_snapshots=1 cmdsrv_port=$cmdsrv_port 2>&1 | tee $pool_dir/autoinst-log.txt") == 0, 'zero exit status';
     $log = $log_file->slurp;
 }
 
