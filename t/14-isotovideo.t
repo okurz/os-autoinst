@@ -287,7 +287,7 @@ subtest 'load test success when casedir and productdir are relative path' => sub
     symlink("$data_dir/tests/tests", 'my_cases/tests') unless -e 'my_cases/tests';
     symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
     my $module = 'tests/failing_module';
-    my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
+    my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module novideo=1", exit_code => 0) };
     unlike $log, qr/\[warn\]/, 'no warnings';
     like $log, qr/scheduling failing_module/, 'schedule can still be found';
     like $log, qr/loaded 4 needles/, 'loaded needles successfully';
