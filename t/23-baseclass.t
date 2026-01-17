@@ -749,6 +749,10 @@ subtest 'adjusting pipe size for external video encoder ' => sub {
     my $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
     my $pipe_sz = fcntl($launched_video_encoder->{pipe}, Fcntl::F_GETPIPE_SZ, 0);
     subtest 'pipe size set' => sub {
+        # Verify logic consistency:
+        # 1. If we got a warning (EPERM/failure), the pipe size should be unchanged/small.
+        # 2. If we got NO warning (success), the pipe size should be increased.
+        # This handles environmental differences (e.g. CI vs local) where F_SETPIPE_SZ might be restricted.
         if ($stderr =~ /Can't increase video encoder pipe size/) {
             diag "Pipe size could not be increased: $stderr";
             ok $pipe_sz < 640 * 480 * 3, 'pipe size not set as expected after warning';
