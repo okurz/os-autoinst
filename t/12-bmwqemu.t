@@ -20,11 +20,11 @@ use Mojo::JSON qw(decode_json);
 use Cpanel::JSON::XS ();
 use Test::Warnings qw(warning :report_warnings);
 
-my $dir = tempdir(CLEANUP => 1);
-chdir $dir;
-
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir = "$toplevel_dir/t/data";
+
+my $dir = tempdir(CLEANUP => 1);
+chdir $dir;
 
 sub create_vars ($data) { path('vars.json')->spew(Cpanel::JSON::XS->new->pretty->canonical->encode($data)) }
 
