@@ -127,10 +127,8 @@ sub handle_commands ($self) {
         backend_out_fd => $self->backend->process->channel_out,
     );
     $command_handler->on(tests_done => sub (@) {
-            CORE::close($self->testfd);
             $self->testfd(undef);
             $self->loop(0);
-            $self->stop_autotest();
     });
     # uncoverable statement count:1
     # uncoverable statement count:2
