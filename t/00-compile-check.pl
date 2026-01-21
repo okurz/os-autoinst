@@ -11,7 +11,11 @@ use Test::Strict;
 use File::Which;
 
 use FindBin '$Bin';
+use lib "$Bin/..";
+
 chdir "$Bin/..";
+
+my $filter = shift || '.';
 
 push @Test::Strict::MODULES_ENABLING_STRICT, 'Test::Most';
 push @Test::Strict::MODULES_ENABLING_WARNINGS, 'Test::Most';
@@ -27,7 +31,11 @@ chomp(my @test_modules = qx{find t/data/tests t/data/wheels_dir t/data/assets t/
 $Test::Strict::TEST_SKIP = [
     'tools/lib/perlcritic/Perl/Critic/Policy/HashKeyQuotes.pm',
     't/data/tests/main.pm',    # fails with "Can't locate testdistribution.pm" as this check does not automatically add the required lib dir
-    @test_modules, @external_files
+    't/00-compile-check.pl',
+    't/00-compile-check-lib.t',
+    't/00-compile-check-backend-consoles.t',
+    't/00-compile-check-tests.t',
+    @test_modules, @external_files,
 ];
 
 # Prevent any non-tracked files or files within .git (e.g. in.git/rr-cache) to
@@ -42,8 +50,17 @@ if (-d '.git' and which('git')) {
         chomp(@all_git_files);
         my $files_to_skip = $Test::Strict::TEST_SKIP || [];
         my %skip = map { $_ => undef } @$files_to_skip;
-        return map { $root . $_ } grep { !exists $skip{$_} } @all_git_files;    # Exclude files to skip
+        my @files;
+        for my $file (@all_git_files) {
+            next if exists $skip{$file};
+            next unless $file =~ /$filter/;
+            # Only check files that look like perl files
+            next unless $file =~ /\.(pm|pl|t|pc)$/ || $file =~ /^(script|isotovideo|imgsearch)/;
+            push @files, $root . $file;
+        }
+        return @files;
     }
 }
 
 all_perl_files_ok('.');
+1;
