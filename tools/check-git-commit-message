@@ -3,10 +3,13 @@ set -eo pipefail
 GITLINT="${1:-gitlint}"
 
 if [ -n "$GITHUB_BASE_REF" ]; then
+    # In GitHub Actions, check the range from base branch to HEAD
     echo "Checking commit range: origin/${GITHUB_BASE_REF}..HEAD"
+    # Ensure base branch is fetched
     git fetch origin "$GITHUB_BASE_REF" --depth=50
     "$GITLINT" --commits "origin/${GITHUB_BASE_REF}..HEAD"
 else
+    # Local check: verify the current HEAD commit
     echo "Checking latest commit (HEAD)"
     "$GITLINT"
 fi
