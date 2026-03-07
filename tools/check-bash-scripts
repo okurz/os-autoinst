@@ -1,5 +1,17 @@
 #!/bin/sh -e
-executable=$1
-path=$2
-# shellcheck disable=SC2046
-"${executable:-shfmt}" -d $("${executable:-shfmt}" -f "${path}" | grep -v "${path}/local/")
+executable=${1:-shfmt}
+path=${2:-$PWD}
+
+if [ -d "$path" ]; then
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        files=$(git ls-files "$path" | grep -E '\.sh$' || true)
+    else
+        files=$(find "$path" -name "*.sh" -type f || true)
+    fi
+
+    if [ -n "$files" ]; then
+        echo "$files" | xargs -P "$(nproc 2>/dev/null || echo 1)" -n 20 "$executable" -d
+    fi
+else
+    "$executable" -d "$path"
+fi
