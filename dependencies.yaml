@@ -147,6 +147,7 @@ test_base_requires:
   perl(Benchmark):
   perl(Devel::Cover):
   perl(FindBin):
+  perl(MCE):
   perl(Pod::Coverage):
   perl(Test::MockModule):
   perl(Test::MockObject):
