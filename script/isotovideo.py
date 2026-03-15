@@ -44,97 +44,103 @@ def random_string(length=8):
 class CommandHandler:
     def __init__(self, runner):
         self.runner = runner
+        self.methods = {
+            "match_needle": self.match_needle,
+            "select_console": self.select_console,
+            "set_current_test": lambda cmd: True,
+            "read_serial": lambda cmd: {"serial": "", "position": 0},
+            "pause_test_execution": lambda cmd: {},
+            "ocr": self.ocr,
+            "send_key": self.send_key,
+            "backend_save_vars": self.backend_save_vars,
+            "quit": self.quit,
+        }
 
     def process_command(self, cmd: Dict[str, Any], client=None) -> Any:
-        method = cmd.get("cmd")
-        if not method:
+        method_name = cmd.get("cmd")
+        if not method_name:
             return None
         token = cmd.get("json_cmd_token")
 
-        log.diag(f"process_command: {method} (token={token})")
-
-        # Route matching commands to rust core
-        if method == "match_needle":
-            if os_autoinst_core:
-                # We expect raw image bytes here in a real scenario
-                return os_autoinst_core.match_needle(
-                    cmd.get("screen", b""),
-                    cmd.get("needle", b""),
-                    cmd.get("x", 0),
-                    cmd.get("y", 0),
-                    cmd.get("w", 0),
-                    cmd.get("h", 0),
-                    cmd.get("margin", 0),
-                )
-            return [1.0, 0, 0]
+        log.diag(f"process_command: {method_name} (token={token})")
 
         # Route backend commands to runner's backend
-        if method.startswith("backend_"):
-            return self.runner.backend.handle_command(method[8:], cmd)
+        if method_name.startswith("backend_") and method_name != "backend_save_vars":
+            return self.runner.backend.handle_command(method_name[8:], cmd)
 
-        if method == "select_console":
-            console_name = cmd.get("testapi_console")
-            return self.runner.select_console(console_name)
-
-        if method == "set_current_test":
-            return True
-
-        if method == "read_serial":
-            return {"serial": "", "position": 0}
-
-        if method == "pause_test_execution":
-            return {}
-
-        if method == "ocr":
-            # Very basic Tesseract caller port
-            import base64
-            import subprocess
-            import tempfile
-
-            screen_b64 = cmd.get("screen")
-            if not screen_b64:
-                return ""
-
-            screen_data = base64.b64decode(screen_b64)
-
-            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-                f.write(screen_data)
-                tmp_img = f.name
-
+        handler = self.methods.get(method_name)
+        if handler:
             try:
-                # Tesseract appends .txt automatically if we don't specify output format
-                subprocess.run(["tesseract", tmp_img, "ocr_out", "quiet"], check=True)
-                with open("ocr_out.txt", "r", encoding="utf-8") as f:
-                    text = f.read()
-                os.remove("ocr_out.txt")
-                return text
+                return handler(cmd)
             except Exception as e:
-                log.diag(f"OCR failed: {e}")
-                return ""
-            finally:
-                if os.path.exists(tmp_img):
-                    os.remove(tmp_img)
+                log.diag(f"Handler for {method_name} failed: {e}")
+                return None
 
-        if method == "send_key":
-            key = cmd.get("key")
-            if self.runner.current_console:
-                keysym = console.get_keysym(key)
-                if keysym:
-                    res1 = self.runner.current_console.send_key(keysym, True)
-                    res2 = self.runner.current_console.send_key(keysym, False)
-                    return res1 and res2
-            return False
-
-        if method == "backend_save_vars":
-            self.runner.vars.save()
-            return True
-
-        if method == "quit":
-            self.runner.loop = False
-            return True
-
-        log.diag(f"Unknown command: {method}")
+        log.diag(f"Unknown command: {method_name}")
         return None
+
+    def match_needle(self, cmd: Dict[str, Any]) -> Any:
+        if os_autoinst_core:
+            return os_autoinst_core.match_needle(
+                cmd.get("screen", b""),
+                cmd.get("needle", b""),
+                cmd.get("x", 0),
+                cmd.get("y", 0),
+                cmd.get("w", 0),
+                cmd.get("h", 0),
+                cmd.get("margin", 0),
+            )
+        return [1.0, 0, 0]
+
+    def select_console(self, cmd: Dict[str, Any]) -> Any:
+        console_name = cmd.get("testapi_console")
+        return self.runner.select_console(console_name)
+
+    def ocr(self, cmd: Dict[str, Any]) -> Any:
+        import base64
+        import subprocess
+        import tempfile
+
+        screen_b64 = cmd.get("screen")
+        if not screen_b64:
+            return ""
+
+        screen_data = base64.b64decode(screen_b64)
+
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            f.write(screen_data)
+            tmp_img = f.name
+
+        try:
+            subprocess.run(["tesseract", tmp_img, "ocr_out", "quiet"], check=True)
+            with open("ocr_out.txt", "r", encoding="utf-8") as f:
+                text = f.read()
+            os.remove("ocr_out.txt")
+            return text
+        except Exception as e:
+            log.diag(f"OCR failed: {e}")
+            return ""
+        finally:
+            if os.path.exists(tmp_img):
+                os.remove(tmp_img)
+
+    def send_key(self, cmd: Dict[str, Any]) -> Any:
+        key = cmd.get("key")
+        if self.runner.current_console:
+            keysym = console.get_keysym(key)
+            if keysym:
+                res1 = self.runner.current_console.send_key(keysym, True)
+                res2 = self.runner.current_console.send_key(keysym, False)
+                return res1 and res2
+        return False
+
+    def backend_save_vars(self, cmd: Dict[str, Any]) -> Any:
+        self.runner.vars.save()
+        return True
+
+    def quit(self, cmd: Dict[str, Any]) -> Any:
+        self.runner.loop = False
+        return True
 
 
 class Runner:
