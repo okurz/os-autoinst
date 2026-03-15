@@ -60,6 +60,7 @@ class QemuBuilder:
     def configure_graphics(self):
         vnc = self.vars.get("VNC")
         if vnc:
+            vnc = str(vnc)
             vnc_str = vnc if ":" in vnc else f":{vnc}"
             vnc_str += " share=force-shared"
             extra = self.vars.get("VNC_EXTRA_VARS")

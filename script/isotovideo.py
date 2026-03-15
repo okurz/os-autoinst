@@ -16,15 +16,25 @@ import time
 from typing import Any, Dict, List, Optional
 
 # Add custom python modules path
-sys.path.insert(0, os.path.abspath("python"))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.exists(os.path.join(script_dir, "python", "os_autoinst")):
+    project_root = script_dir
+else:
+    project_root = os.path.abspath(os.path.join(script_dir, ".."))
+
+PROJECT_ROOT = project_root
+sys.path.insert(0, os.path.join(PROJECT_ROOT, "python"))
 from os_autoinst import log, vars, backend, console, utils
 
 # Add rust core path
-sys.path.insert(0, os.path.abspath("rust/os-autoinst-core"))
+sys.path.insert(0, os.path.join(PROJECT_ROOT, "rust", "os-autoinst-core"))
 try:
     import os_autoinst_core
 except ImportError:
     os_autoinst_core = None
+
+
+PROJECT_ROOT = project_root
 
 
 def random_string(length=8):
@@ -250,7 +260,8 @@ class Runner:
 
     def start_autotest(self):
         perl_code = f"""
-use lib '.';
+use lib '{PROJECT_ROOT}';
+use lib '{PROJECT_ROOT}/ppmclibs';
 use autotest qw(connect_to_isotovideo runalltests);
 connect_to_isotovideo('{self.socket_path}');
 runalltests();
