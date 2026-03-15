@@ -188,3 +188,56 @@ fn os_autoinst_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(scale, m)?)?;
     Ok(())
 }
+
+// --- C-compatible FFI for direct Perl/C communication ---
+
+#[no_mangle]
+pub extern "C" fn rust_match_needle(
+    screen_ptr: *const u8,
+    screen_len: usize,
+    needle_ptr: *const u8,
+    needle_len: usize,
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+    margin: u32,
+    out_similarity: *mut f32,
+    out_x: *mut u32,
+    out_y: *mut u32,
+) -> i32 {
+    let screen_data = unsafe { std::slice::from_raw_parts(screen_ptr, screen_len) };
+    let needle_data = unsafe { std::slice::from_raw_parts(needle_ptr, needle_len) };
+
+    match match_needle(screen_data, needle_data, x, y, width, height, margin) {
+        Ok(Some((sim, bx, by))) => {
+            unsafe {
+                *out_similarity = sim;
+                *out_x = bx;
+                *out_y = by;
+            }
+            1 // Success
+        }
+        Ok(None) => 0, // No match
+        Err(_) => -1,  // Error
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_save_image(
+    data_ptr: *const u8,
+    data_len: usize,
+    path_ptr: *const i8,
+) -> i32 {
+    let data = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
+    let path = unsafe { std::ffi::CStr::from_ptr(path_ptr) };
+    let path_str = match path.to_str() {
+        Ok(s) => s,
+        Err(_) => return -1,
+    };
+
+    match save_image(data, path_str) {
+        Ok(_) => 1,
+        Err(_) => -1,
+    }
+}
