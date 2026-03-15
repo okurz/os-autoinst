@@ -105,6 +105,7 @@ class CommandHandler:
         if not screen_b64:
             return ""
 
+        lang = cmd.get("lang", "eng")
         screen_data = base64.b64decode(screen_b64)
 
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
@@ -112,7 +113,10 @@ class CommandHandler:
             tmp_img = f.name
 
         try:
-            subprocess.run(["tesseract", tmp_img, "ocr_out", "quiet"], check=True)
+            # Pass language parameter to tesseract
+            subprocess.run(
+                ["tesseract", tmp_img, "ocr_out", "-l", lang, "quiet"], check=True
+            )
             with open("ocr_out.txt", "r", encoding="utf-8") as f:
                 text = f.read()
             os.remove("ocr_out.txt")
