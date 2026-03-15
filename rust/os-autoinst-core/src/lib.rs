@@ -95,10 +95,21 @@ fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
     Ok((a + b).to_string())
 }
 
+/// Saves the image data to a file.
+#[pyfunction]
+fn save_image(data: &[u8], path: &str) -> PyResult<()> {
+    let img = image::load_from_memory(data)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+    img.save(path)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+    Ok(())
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn os_autoinst_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(match_needle, m)?)?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
+    m.add_function(wrap_pyfunction!(save_image, m)?)?;
     Ok(())
 }
