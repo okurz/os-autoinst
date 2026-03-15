@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 
 # Add custom python modules path
 sys.path.insert(0, os.path.abspath("python"))
-from os_autoinst import log, vars, backend
+from os_autoinst import log, vars, backend, console
 
 # Add rust core path
 sys.path.insert(0, os.path.abspath("rust/os-autoinst-core"))
@@ -36,32 +36,33 @@ class CommandHandler:
 
     def process_command(self, cmd: Dict[str, Any]) -> Any:
         method = cmd.get("cmd")
+        if not method:
+            return None
         args = cmd.get("args", {})
         token = cmd.get("json_cmd_token")
 
         log.diag(f"process_command: {method} (token={token})")
 
+        # Route matching commands to rust core
         if method == "match_needle":
             if os_autoinst_core:
-                # Actual logic would involve decoding args['screen'] etc.
+                # We expect raw image bytes here in a real scenario
                 return os_autoinst_core.match_needle(
-                    args["screen"],
-                    args["needle"],
-                    args["x"],
-                    args["y"],
-                    args["w"],
-                    args["h"],
-                    args["margin"],
+                    args.get("screen", b""),
+                    args.get("needle", b""),
+                    args.get("x", 0),
+                    args.get("y", 0),
+                    args.get("w", 0),
+                    args.get("h", 0),
+                    args.get("margin", 0),
                 )
             return [1.0, 0, 0]
 
-        elif method == "backend_save_memory_dump":
-            return self.runner.backend.save_memory_dump(args.get("filename"))
+        # Route backend commands to runner's backend
+        if method.startswith("backend_"):
+            return self.runner.backend.handle_command(method[8:], args)
 
-        elif method == "backend_can_handle":
-            return True
-
-        elif method == "quit":
+        if method == "quit":
             self.runner.loop = False
             return True
 
@@ -73,7 +74,7 @@ class Runner:
     def __init__(self, args):
         self.args = args
         self.vars = vars.global_vars
-        self.backend = backend.Backend()
+        self.backend = backend.QemuBackend()
         self.handler = CommandHandler(self)
         self.loop = True
         self.socket_path = os.environ.get(
@@ -106,18 +107,27 @@ class Runner:
         clients = {}
 
         while self.loop:
-            readable, _, _ = select.select(inputs, [], [], 1.0)
+            try:
+                readable, _, _ = select.select(inputs, [], [], 1.0)
+            except InterruptedError:
+                continue
+
             for s in readable:
                 if s is server:
                     conn, addr = s.accept()
                     inputs.append(conn)
                     clients[conn] = b""
                 else:
-                    data = s.recv(4096)
+                    try:
+                        data = s.recv(4096)
+                    except ConnectionResetError:
+                        data = None
+
                     if not data:
                         inputs.remove(s)
                         s.close()
-                        del clients[s]
+                        if s in clients:
+                            del clients[s]
                     else:
                         clients[s] += data
                         if b"\n" in clients[s]:
