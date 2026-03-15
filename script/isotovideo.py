@@ -61,6 +61,20 @@ class CommandHandler:
         if method.startswith("backend_"):
             return self.runner.backend.handle_command(method[8:], cmd)
 
+        if method == "select_console":
+            console_name = cmd.get("testapi_console")
+            return self.runner.select_console(console_name)
+
+        if method == "send_key":
+            key = cmd.get("key")
+            if self.runner.current_console:
+                keysym = console.get_keysym(key)
+                if keysym:
+                    res1 = self.runner.current_console.send_key(keysym, True)
+                    res2 = self.runner.current_console.send_key(keysym, False)
+                    return res1 and res2
+            return False
+
         if method == "quit":
             self.runner.loop = False
             return True
@@ -76,6 +90,8 @@ class Runner:
         self.backend = backend.QemuBackend()
         self.handler = CommandHandler(self)
         self.loop = True
+        self.consoles: Dict[str, console.Console] = {}
+        self.current_console: Optional[console.Console] = None
         self.socket_path = os.environ.get(
             "OS_AUTOINST_PYTHON_SOCKET", "/tmp/os-autoinst-python.sock"
         )
@@ -89,6 +105,10 @@ class Runner:
             log.direct_output = True
 
         self.backend.start()
+
+        # Setup default VNC console
+        vnc_port = 5900 + int(self.vars.get("WORKER_ID", 0))
+        self.consoles["vnc"] = console.VNCConsole("vnc", "localhost", vnc_port)
 
         # Start listening socket
         server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -150,6 +170,15 @@ class Runner:
         if os.path.exists(self.socket_path):
             os.remove(self.socket_path)
         return 0
+
+    def select_console(self, name: str) -> bool:
+        if name not in self.consoles:
+            log.diag(f"Console {name} not found")
+            return False
+
+        self.current_console = self.consoles[name]
+        self.current_console.activate()
+        return True
 
     def start_autotest(self):
         perl_code = f"""
