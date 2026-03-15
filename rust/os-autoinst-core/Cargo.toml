@@ -1,0 +1,11 @@
+[package]
+name = "os-autoinst-core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "os_autoinst_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.23.0", features = ["extension-module"] }
