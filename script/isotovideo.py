@@ -44,11 +44,6 @@ def random_string(length=8):
 class CommandHandler:
     def __init__(self, runner):
         self.runner = runner
-        self.tags = None
-        self.timeout = 0
-        self.last_check = time.time()
-        self.pending_client = None
-        self.pending_token = None
 
     def process_command(self, cmd: Dict[str, Any], client=None) -> Any:
         method = cmd.get("cmd")
@@ -76,14 +71,6 @@ class CommandHandler:
         # Route backend commands to runner's backend
         if method.startswith("backend_"):
             return self.runner.backend.handle_command(method[8:], cmd)
-
-        if method == "check_screen":
-            self.tags = cmd.get("mustmatch", [])
-            self.timeout = cmd.get("timeout", 30)
-            self.last_check = time.time()
-            self.pending_client = client
-            self.pending_token = token
-            return None  # Don't respond yet
 
         if method == "select_console":
             console_name = cmd.get("testapi_console")
@@ -148,46 +135,6 @@ class CommandHandler:
 
         log.diag(f"Unknown command: {method}")
         return None
-
-    def check_asserted_screen(self):
-        if self.tags is None or self.pending_client is None:
-            return
-
-        now = time.time()
-        # Simulate a match after 2 seconds
-        if now - self.last_check > 2.0:
-            log.diag(f"SIMULATED MATCH for tags: {self.tags}")
-
-            # Mock a successful response
-            import base64
-
-            dummy_image = b"P6\n1 1\n255\n\xff\xff\xff"  # 1x1 white PPM
-
-            response = {
-                "ret": {
-                    "found": {
-                        "needle": {
-                            "name": self.tags[0],
-                            "area": [{"similarity": 1.0, "x": 0, "y": 0}],
-                        },
-                        "area": [{"similarity": 1.0, "x": 0, "y": 0}],
-                    },
-                    "tags": self.tags,
-                    "image": base64.b64encode(dummy_image).decode("utf-8"),
-                    "frame": 0,
-                    "candidates": [],
-                },
-                "json_cmd_token": self.pending_token,
-            }
-
-            try:
-                self.pending_client.sendall(json.dumps(response).encode() + b"\n")
-            except Exception as e:
-                log.diag(f"Failed to send delayed response: {e}")
-
-            self.tags = None
-            self.pending_client = None
-            self.pending_token = None
 
 
 class Runner:
@@ -273,8 +220,6 @@ class Runner:
                                 except Exception as e:
                                     log.diag(f"Error processing command: {e}")
                             clients[s] = lines[-1]
-
-            self.handler.check_asserted_screen()
 
         self.backend.stop()
         if os.path.exists(self.socket_path):
