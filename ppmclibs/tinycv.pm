@@ -63,7 +63,30 @@ if ($ENV{OS_AUTOINST_RUST_CORE}) {
         }
         return $orig_write->($self, $filename);
     };
+
+    # Ensure from_ppm is defined
+    *tinycv::from_ppm = sub ($data) {
+        return tinycv::RustImage->new($data);
+    };
 }
+
+package tinycv::RustImage;
+use Mojo::Base -base, -signatures;
+has 'ppm_data';
+sub new ($class, $data) { return $class->SUPER::new(ppm_data => $data) }
+sub write ($self, $filename) {
+    Inline::Python::py_call_function("os_autoinst_core", "save_image", $self->ppm_data, $filename);
+}
+sub write_with_thumbnail ($self, $filename) {
+    # Stub for now
+    $self->write($filename);
+}
+sub copyrect ($self, @args) { return $self } # Stub
+sub scale ($self, @args) { return $self } # Stub
+sub xres ($self) { return 1024 } # Stub
+sub yres ($self) { return 768 } # Stub
+
+package tinycv::Image;
 
 package tinycv::Image;
 

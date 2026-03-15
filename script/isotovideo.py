@@ -47,8 +47,10 @@ class CommandHandler:
         self.tags = None
         self.timeout = 0
         self.last_check = time.time()
+        self.pending_client = None
+        self.pending_token = None
 
-    def process_command(self, cmd: Dict[str, Any]) -> Any:
+    def process_command(self, cmd: Dict[str, Any], client=None) -> Any:
         method = cmd.get("cmd")
         if not method:
             return None
@@ -79,17 +81,28 @@ class CommandHandler:
             self.tags = cmd.get("mustmatch", [])
             self.timeout = cmd.get("timeout", 30)
             self.last_check = time.time()
-            return True
+            self.pending_client = client
+            self.pending_token = token
+            return None  # Don't respond yet
 
         if method == "select_console":
             console_name = cmd.get("testapi_console")
             return self.runner.select_console(console_name)
 
+        if method == "set_current_test":
+            return True
+
+        if method == "read_serial":
+            return {"serial": "", "position": 0}
+
+        if method == "pause_test_execution":
+            return {}
+
         if method == "ocr":
             # Very basic Tesseract caller port
+            import base64
             import subprocess
             import tempfile
-            import base64
 
             screen_b64 = cmd.get("screen")
             if not screen_b64:
@@ -137,20 +150,44 @@ class CommandHandler:
         return None
 
     def check_asserted_screen(self):
-        if self.tags is None:
+        if self.tags is None or self.pending_client is None:
             return
 
         now = time.time()
-        if now - self.last_check > 1.0:
-            # In a real implementation, we'd take a screenshot and match it
-            # For now, just simulate a match after 2 seconds
-            if now - self.last_check > 2.0:
-                log.diag(f"SIMULATED MATCH for tags: {self.tags}")
-                # We need to send the response to the test client
-                # This requires keeping track of which client sent the check_screen
-                # But for this phase, we just clear tags
-                self.tags = None
-            self.last_check = now
+        # Simulate a match after 2 seconds
+        if now - self.last_check > 2.0:
+            log.diag(f"SIMULATED MATCH for tags: {self.tags}")
+
+            # Mock a successful response
+            import base64
+
+            dummy_image = b"P6\n1 1\n255\n\xff\xff\xff"  # 1x1 white PPM
+
+            response = {
+                "ret": {
+                    "found": {
+                        "needle": {
+                            "name": self.tags[0],
+                            "area": [{"similarity": 1.0, "x": 0, "y": 0}],
+                        },
+                        "area": [{"similarity": 1.0, "x": 0, "y": 0}],
+                    },
+                    "tags": self.tags,
+                    "image": base64.b64encode(dummy_image).decode("utf-8"),
+                    "frame": 0,
+                    "candidates": [],
+                },
+                "json_cmd_token": self.pending_token,
+            }
+
+            try:
+                self.pending_client.sendall(json.dumps(response).encode() + b"\n")
+            except Exception as e:
+                log.diag(f"Failed to send delayed response: {e}")
+
+            self.tags = None
+            self.pending_client = None
+            self.pending_token = None
 
 
 class Runner:
@@ -226,12 +263,13 @@ class Runner:
                                     continue
                                 try:
                                     cmd = json.loads(line)
-                                    res = self.handler.process_command(cmd)
-                                    response = {
-                                        "ret": res,
-                                        "json_cmd_token": cmd.get("json_cmd_token"),
-                                    }
-                                    s.sendall(json.dumps(response).encode() + b"\n")
+                                    res = self.handler.process_command(cmd, client=s)
+                                    if res is not None:
+                                        response = {
+                                            "ret": res,
+                                            "json_cmd_token": cmd.get("json_cmd_token"),
+                                        }
+                                        s.sendall(json.dumps(response).encode() + b"\n")
                                 except Exception as e:
                                     log.diag(f"Error processing command: {e}")
                             clients[s] = lines[-1]
@@ -245,6 +283,15 @@ class Runner:
 
     def prepare(self):
         self.vars.load()
+        # Ensure CASEDIR and NEEDLES_DIR are absolute
+        casedir = self.vars.get("CASEDIR")
+        if casedir:
+            self.vars.set("CASEDIR", os.path.abspath(casedir))
+
+        needles_dir = self.vars.get("NEEDLES_DIR")
+        if needles_dir:
+            self.vars.set("NEEDLES_DIR", os.path.abspath(needles_dir))
+
         utils.checkout_git_repo_and_branch("CASEDIR")
         utils.checkout_git_repo_and_branch("NEEDLES_DIR")
         utils.load_test_schedule()
@@ -261,8 +308,16 @@ class Runner:
     def start_autotest(self):
         perl_code = f"""
 use lib '{PROJECT_ROOT}';
-use lib '{PROJECT_ROOT}/ppmclibs';
+use lib '{PROJECT_ROOT}/ppmclibs/blib/lib';
+use lib '{PROJECT_ROOT}/ppmclibs/blib/arch';
+use bmwqemu;
 use autotest qw(connect_to_isotovideo runalltests);
+use OpenQA::Isotovideo::Utils qw(load_test_schedule);
+use needle;
+
+bmwqemu::load_vars();
+load_test_schedule();
+needle::init($bmwqemu::vars{{NEEDLES_DIR}} || $bmwqemu::vars{{CASEDIR}} . "/needles");
 connect_to_isotovideo('{self.socket_path}');
 runalltests();
 """
