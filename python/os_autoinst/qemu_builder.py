@@ -37,28 +37,85 @@ class QemuBuilder:
         if cpu:
             self.add("cpu", cpu)
 
+        # SMP
+        cpus = self.vars.get("QEMUCPUS")
+        if cpus:
+            smp = [str(cpus)]
+            for key in ["SOCKETS", "DIES", "CLUSTERS", "CORES", "THREADS"]:
+                val = self.vars.get(f"QEMU{key}")
+                if val:
+                    smp.append(f"{key.lower()}={val}")
+            self.add("smp", ",".join(smp))
+
+        if not self.vars.get("QEMU_NO_KVM") and os.access("/dev/kvm", os.R_OK):
+            self.add("enable-kvm")
+
+        self.add("no-shutdown")
+
     def configure_serial(self):
         # Default serial setup
         self.add("chardev", "ringbuf,id=serial0,logfile=serial0,logappend=on")
         self.add("serial", "chardev:serial0")
 
     def configure_graphics(self):
-        # Very basic stub for now
-        self.add("vga", "std")
-        self.add("vnc", ":0")
+        vnc = self.vars.get("VNC")
+        if vnc:
+            vnc_str = vnc if ":" in vnc else f":{vnc}"
+            vnc_str += " share=force-shared"
+            extra = self.vars.get("VNC_EXTRA_VARS")
+            if extra:
+                vnc_str += f" {extra}"
+            self.add("vnc", vnc_str)
+
+            vnckb = self.vars.get("VNCKB")
+            if vnckb:
+                self.add("k", vnckb)
+        else:
+            self.add("vga", "std")
 
     def configure_network(self):
-        # Very basic user networking stub
+        if self.vars.get("OFFLINE_SUT"):
+            self.add("net", "none")
+            return
+
+        # Simplified networking: single user NIC for now
+        nic_model = self.vars.get("NICMODEL", "virtio-net-pci")
+        mac = self.vars.get("NICMAC", "52:54:00:12:34:56")
+
         self.add("netdev", "user,id=qanet0")
-        self.add("device", "virtio-net-pci,netdev=qanet0,mac=52:54:00:12:34:56")
+        self.add("device", f"{nic_model},netdev=qanet0,mac={mac}")
 
     def configure_storage(self):
-        # Stub for block devices
-        # In reality, this would look at HDD_0, HDD_1, etc.
-        hdd = self.vars.get("HDD_0")
-        if hdd:
-            self.add("drive", f"file={hdd},format=qcow2,if=virtio")
+        num_disks = int(self.vars.get("NUMDISKS", 1))
+        hdd_model = self.vars.get("HDDMODEL", "virtio-blk-pci")
 
-        cdrom = self.vars.get("ISO")
-        if cdrom:
-            self.add("drive", f"file={cdrom},format=raw,if=ide,media=cdrom")
+        for i in range(num_disks):
+            hdd = self.vars.get(f"HDD_{i}")
+            if hdd:
+                self.add("drive", f"file={hdd},format=qcow2,if=none,id=drive-hdd{i}")
+                self.add("device", f"{hdd_model},drive=drive-hdd{i},id=hdd{i}")
+
+        iso = self.vars.get("ISO")
+        if iso:
+            cd_model = self.vars.get("CDMODEL", "scsi-cd")
+            # Assuming a default SCSI controller if scsi-cd is used
+            self.add("drive", f"file={iso},format=raw,if=none,id=drive-cd0,media=cdrom")
+            self.add("device", f"{cd_model},drive=drive-cd0,id=cd0")
+
+    def configure_boot(self):
+        boot = []
+        bootfrom = self.vars.get("BOOTFROM")
+        if bootfrom:
+            boot.append(f"order={bootfrom}")
+
+        menu = self.vars.get("BOOT_MENU")
+        if menu:
+            boot.append("menu=on")
+
+        if boot:
+            self.add("boot", ",".join(boot))
+
+        for attr in ["KERNEL", "INITRD", "APPEND"]:
+            val = self.vars.get(attr)
+            if val:
+                self.add(attr.lower(), val)
