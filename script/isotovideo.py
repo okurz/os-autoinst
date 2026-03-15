@@ -12,11 +12,12 @@ import random
 import string
 import datetime
 import subprocess
+import time
 from typing import Any, Dict, List, Optional
 
 # Add custom python modules path
 sys.path.insert(0, os.path.abspath("python"))
-from os_autoinst import log, vars, backend, console
+from os_autoinst import log, vars, backend, console, utils
 
 # Add rust core path
 sys.path.insert(0, os.path.abspath("rust/os-autoinst-core"))
@@ -33,6 +34,9 @@ def random_string(length=8):
 class CommandHandler:
     def __init__(self, runner):
         self.runner = runner
+        self.tags = None
+        self.timeout = 0
+        self.last_check = time.time()
 
     def process_command(self, cmd: Dict[str, Any]) -> Any:
         method = cmd.get("cmd")
@@ -60,6 +64,12 @@ class CommandHandler:
         # Route backend commands to runner's backend
         if method.startswith("backend_"):
             return self.runner.backend.handle_command(method[8:], cmd)
+
+        if method == "check_screen":
+            self.tags = cmd.get("mustmatch", [])
+            self.timeout = cmd.get("timeout", 30)
+            self.last_check = time.time()
+            return True
 
         if method == "select_console":
             console_name = cmd.get("testapi_console")
@@ -105,12 +115,32 @@ class CommandHandler:
                     return res1 and res2
             return False
 
+        if method == "backend_save_vars":
+            self.runner.vars.save()
+            return True
+
         if method == "quit":
             self.runner.loop = False
             return True
 
         log.diag(f"Unknown command: {method}")
         return None
+
+    def check_asserted_screen(self):
+        if self.tags is None:
+            return
+
+        now = time.time()
+        if now - self.last_check > 1.0:
+            # In a real implementation, we'd take a screenshot and match it
+            # For now, just simulate a match after 2 seconds
+            if now - self.last_check > 2.0:
+                log.diag(f"SIMULATED MATCH for tags: {self.tags}")
+                # We need to send the response to the test client
+                # This requires keeping track of which client sent the check_screen
+                # But for this phase, we just clear tags
+                self.tags = None
+            self.last_check = now
 
 
 class Runner:
@@ -130,7 +160,7 @@ class Runner:
 
     def run(self):
         log.diag("Python isotovideo runner started.")
-        self.vars.load()
+        self.prepare()
         if self.args.debug:
             log.direct_output = True
 
@@ -196,10 +226,18 @@ class Runner:
                                     log.diag(f"Error processing command: {e}")
                             clients[s] = lines[-1]
 
+            self.handler.check_asserted_screen()
+
         self.backend.stop()
         if os.path.exists(self.socket_path):
             os.remove(self.socket_path)
         return 0
+
+    def prepare(self):
+        self.vars.load()
+        utils.checkout_git_repo_and_branch("CASEDIR")
+        utils.checkout_git_repo_and_branch("NEEDLES_DIR")
+        utils.load_test_schedule()
 
     def select_console(self, name: str) -> bool:
         if name not in self.consoles:

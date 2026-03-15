@@ -54,6 +54,15 @@ if ($ENV{OS_AUTOINST_RUST_CORE}) {
         }
         return $orig_search_needle->($self, $needle, $x, $y, $w, $h, $margin);
     };
+
+    my $orig_write = \&tinycv::Image::write;
+    *tinycv::Image::write = sub ($self, $filename) {
+        if (_init_rust_bridge()) {
+            eval { Inline::Python::py_call_function("os_autoinst_core", "save_image", $self->ppm_data, $filename) };
+            return 1 unless $@;
+        }
+        return $orig_write->($self, $filename);
+    };
 }
 
 package tinycv::Image;
