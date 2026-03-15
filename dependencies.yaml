@@ -66,19 +66,11 @@ targets:
     lint: test
 
 build_base_requires:
-  gcc-c++:
   perl(Pod::Html):
   pkg-config:
-  pkgconfig(fftw3):
-  pkgconfig(libpng):
-  pkgconfig(sndfile):
-  pkgconfig(theoraenc):
-  '%opencv_require':
 
 build_requires:
   '%build_base_requires':
-  cmake:
-  ninja:
 
 cover_requires:
   perl(Devel::Cover):

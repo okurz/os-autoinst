@@ -1,23 +1,17 @@
 # Copyright 2009-2013 Bernhard M. Wiedemann
-# Copyright SUSE LLC
+# Copyright 2012-2026 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package tinycv;
 
 use Mojo::Base -strict, -signatures;
-
 use bmwqemu 'fctwarn';
 use File::Basename;
-use Math::Complex 'sqrt';
 require Exporter;
-require DynaLoader;
 
-our @ISA = qw(Exporter DynaLoader);
+our @ISA = qw(Exporter);
 our @EXPORT = qw();
-
 our $VERSION = '1.0';
-
-bootstrap tinycv $VERSION;
 
 my $rust_initialized = 0;
 
@@ -44,103 +38,46 @@ EOF
     return 1;
 }
 
-if ($ENV{OS_AUTOINST_RUST_CORE}) {
-    eval { require Inline::Python };
-    no warnings 'redefine';
-
-    my $orig_new = \&tinycv::new;
-    *tinycv::new = sub ($w, $h) {
-        if (_init_rust_bridge()) {
-            my $data = Inline::Python::py_call_function("os_autoinst_core", "new_image", $w, $h);
-            return tinycv::RustImage->new($data);
-        }
-        return $orig_new->($w, $h);
-    };
-
-    my $orig_read = \&tinycv::read;
-    *tinycv::read = sub ($filename) {
-        if (_init_rust_bridge()) {
-            my $data = Inline::Python::py_call_function("os_autoinst_core", "read_image", $filename);
-            return tinycv::RustImage->new($data);
-        }
-        return $orig_read->($filename);
-    };
-
-    my $orig_search_needle = \&tinycv::Image::search_needle;
-    *tinycv::Image::search_needle = sub ($self, $needle, $x, $y, $w, $h, $margin) {
-        if (_init_rust_bridge()) {
-            my $res = Inline::Python::py_call_function("os_autoinst_core", "match_needle", $self->ppm_data, $needle->ppm_data, $x, $y, $w, $h, $margin);
-            return @$res if $res;
-        }
-        return $orig_search_needle->($self, $needle, $x, $y, $w, $h, $margin);
-    };
-
-    my $orig_write = \&tinycv::Image::write;
-    *tinycv::Image::write = sub ($self, $filename) {
-        if (_init_rust_bridge()) {
-            eval { Inline::Python::py_call_function("os_autoinst_core", "save_image", $self->ppm_data, $filename) };
-            return 1 unless $@;
-        }
-        return $orig_write->($self, $filename);
-    };
-
-    my $orig_copyrect = \&tinycv::Image::copyrect;
-    *tinycv::Image::copyrect = sub ($self, $x, $y, $w, $h) {
-        if (_init_rust_bridge()) {
-            my $data = Inline::Python::py_call_function("os_autoinst_core", "copy_rect", $self->ppm_data, $x, $y, $w, $h);
-            return tinycv::RustImage->new($data);
-        }
-        return $orig_copyrect->($self, $x, $y, $w, $h);
-    };
-
-    my $orig_replacerect = \&tinycv::Image::replacerect;
-    *tinycv::Image::replacerect = sub ($self, $x, $y, $w, $h, $r = 0, $g = 0, $b = 0) {
-        if (_init_rust_bridge()) {
-            my $data = Inline::Python::py_call_function("os_autoinst_core", "replace_rect", $self->ppm_data, $x, $y, $w, $h, $r, $g, $b);
-            if ($self->isa('tinycv::RustImage')) {
-                $self->ppm_data($data);
-                return $self;
-            }
-            # If it's a C++ object, we can't easily update its internal state from Rust bytes
-            # but we can return a new RustImage. However, replacerect is usually in-place.
-            # For now, let's just return a new RustImage and hope for the best, or warn.
-            return tinycv::RustImage->new($data);
-        }
-        return $orig_replacerect->($self, $x, $y, $w, $h, $r, $g, $b);
-    };
-
-    my $orig_scale = \&tinycv::Image::scale;
-    *tinycv::Image::scale = sub ($self, $w, $h) {
-        if (_init_rust_bridge()) {
-            my $data = Inline::Python::py_call_function("os_autoinst_core", "scale", $self->ppm_data, $w, $h);
-            return tinycv::RustImage->new($data);
-        }
-        return $orig_scale->($self, $w, $h);
-    };
-
-    # Ensure from_ppm is defined
-    *tinycv::from_ppm = sub ($data) {
-        return tinycv::RustImage->new($data);
-    };
+sub new ($w, $h) {
+    _init_rust_bridge();
+    my $data = Inline::Python::py_call_function("os_autoinst_core", "new_image", $w, $h);
+    return tinycv::Image->new($data);
 }
 
-package tinycv::RustImage;
+sub read ($filename) {
+    _init_rust_bridge();
+    my $data = Inline::Python::py_call_function("os_autoinst_core", "read_image", $filename);
+    return tinycv::Image->new($data);
+}
+
+sub from_ppm ($data) {
+    return tinycv::Image->new($data);
+}
+
+package tinycv::Image;
 use Mojo::Base -base, -signatures;
+use Inline::Python;
+
 has 'ppm_data';
-sub new ($class, $data) { return $class->SUPER::new(ppm_data => $data) }
+
+sub new ($class, $data) {
+    return $class->SUPER::new(ppm_data => $data);
+}
+
+sub search_needle ($self, $needle, $x, $y, $w, $h, $margin) {
+    my $res = Inline::Python::py_call_function("os_autoinst_core", "match_needle", $self->ppm_data, $needle->ppm_data, $x, $y, $w, $h, $margin);
+    return @$res if $res;
+    return ();
+}
 
 sub write ($self, $filename) {
-    tinycv::_init_rust_bridge();
-    Inline::Python::py_call_function("os_autoinst_core", "save_image", $self->ppm_data, $filename);
-}
-
-sub write_with_thumbnail ($self, $filename) {
-    $self->write($filename);
+    eval { Inline::Python::py_call_function("os_autoinst_core", "save_image", $self->ppm_data, $filename) };
+    return $@ ? 0 : 1;
 }
 
 sub copyrect ($self, $x, $y, $w, $h) {
     my $data = Inline::Python::py_call_function("os_autoinst_core", "copy_rect", $self->ppm_data, $x, $y, $w, $h);
-    return tinycv::RustImage->new($data);
+    return tinycv::Image->new($data);
 }
 
 sub replacerect ($self, $x, $y, $w, $h, $r = 0, $g = 0, $b = 0) {
@@ -151,11 +88,10 @@ sub replacerect ($self, $x, $y, $w, $h, $r = 0, $g = 0, $b = 0) {
 
 sub scale ($self, $w, $h) {
     my $data = Inline::Python::py_call_function("os_autoinst_core", "scale", $self->ppm_data, $w, $h);
-    return tinycv::RustImage->new($data);
+    return tinycv::Image->new($data);
 }
 
 sub xres ($self) {
-    # Extract from PPM header
     if ($self->ppm_data =~ /^P6\n(\d+) (\d+)\n/) {
         return $1;
     }
@@ -169,37 +105,29 @@ sub yres ($self) {
     return 768;
 }
 
-package tinycv::Image;
+sub write_with_thumbnail ($self, $filename) {
+    $self->write($filename) or die "Unable to write '$filename'\n";
 
-use Mojo::Base -strict, -signatures;
+    my $thumb = $self->scale($self->xres() * 45 / $self->yres(), 45);
+    my $dir = File::Basename::dirname($filename) . '/.thumbs';
+    my $base = File::Basename::basename($filename);
+
+    mkdir $dir;
+    $thumb->write("$dir/$base") or die "Unable to write '$dir/$base'\n";
+}
 
 sub mean_square_error ($areas) {
     my $mse = 0.0;
-    my $err;
-
     for my $area (@$areas) {
-        $err = 1 - $area->{similarity};
+        my $err = 1 - $area->{similarity};
         $mse += $err * $err;
     }
     return $mse / scalar @$areas;
 }
 
-# returns hash with match hinformation
-# {
-#   ok => INT(1,0), # 1 if all areas matched
-#   area = [
-#     { x => INT, y => INT, w => INT, h => INT,
-#       similarity => FLOAT,
-#       result = STRING('ok', 'fail'),
-#     }
-#   ]
-# }
 sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
     $threshold ||= 0.0;
     $search_ratio ||= 0.0;
-    my ($sim, $xmatch, $ymatch);
-    my (@exclude, @match, @ocr);
-
     return undef unless $needle;
 
     my $needle_image = $needle->get_image;
@@ -210,6 +138,7 @@ sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
     $stopwatch->lap('**++ search__: get image') if $stopwatch;
 
     my $img = $self;
+    my (@exclude, @match, @ocr);
     for my $area (@{$needle->{area}}) {
         push @exclude, $area if $area->{type} eq 'exclude';
         push @match, $area if $area->{type} eq 'match';
@@ -220,36 +149,25 @@ sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
         $img = $self->copy;
         for my $exclude_area (@exclude) {
             $img->replacerect(@{$exclude_area}{qw(xpos ypos width height)});
-            $stopwatch->lap('**++-- search__: rectangle replacement') if $stopwatch;
         }
-        $stopwatch->lap('**++ search__: areas exclusion') if $stopwatch;
     }
+
     my $ret = {ok => 1, needle => $needle, area => []};
     for my $area (@match) {
         my $margin = int($area->{margin} + $search_ratio * (1024 - $area->{margin}));
+        my ($sim, $xmatch, $ymatch) = $img->search_needle($needle_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
 
-        ($sim, $xmatch, $ymatch) = $img->search_needle($needle_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
-
-        $stopwatch->lap("**++ tinycv::search_needle $area->{width}x$area->{height} + $margin @ $area->{xpos}x$area->{ypos}") if $stopwatch;
         my $ma = {
-            similarity => $sim,
-            x => $xmatch,
-            y => $ymatch,
+            similarity => $sim // 0,
+            x => $xmatch // 0,
+            y => $ymatch // 0,
             w => $area->{width},
             h => $area->{height},
             result => 'ok',
         };
-        if (my $click_point = $area->{click_point}) {
-            $ma->{click_point} = $click_point;
-        }
-
-        # A 96% match is ok for console tests. Please, if you
-        # change this number consider change also the test
-        # 01-test_needle and the console tests (for example, using
-        # more smaller areas)
 
         my $m = ($area->{match} || 96) / 100;
-        if ($sim < $m - $threshold) {
+        if (($sim // 0) < $m - $threshold) {
             $ma->{result} = 'fail';
             $ret->{ok} = 0;
         }
@@ -263,83 +181,37 @@ sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
             my $ocr = ocr::tesseract($img, $ocr_area);
             push @{$ret->{ocr}}, $ocr;
         }
-        $stopwatch->lap("**++ ocr::tesseract: $needle->{name}") if $stopwatch;
     }
     return $ret;
 }
 
-# bigger OK is better (0/1)
-# smaller error is better if not OK (0 perfect, 1 totally off)
-# if match is equal quality prefer workaround needle to non-workaround
-# the name doesn't matter, but we prefer alphabetic order
-sub cmp_by_error_type_ {    # no:style:signatures
-    ## no critic (Community::DollarAB)
-    my $okay = $b->{ok} <=> $a->{ok};
-    return $okay if $okay;
-    my $error = $a->{error} <=> $b->{error};
-    return $error if $error;
-    return -1 if ($a->{needle}->has_property('workaround') && !$b->{needle}->has_property('workaround'));
-    return 1 if ($b->{needle}->has_property('workaround') && !$a->{needle}->has_property('workaround'));
-    return $a->{needle}->{name} cmp $b->{needle}->{name};
-
-    ## use critic
-
-}
-
-
-# in scalar context return found info or undef
-# in array context returns array with two elements. First element is best match
-# or undefined, second element are candidates that did not match.
 sub search ($self, $needle, $threshold = undef, $search_ratio = undef, $stopwatch = undef) {
     return undef unless $needle;
 
     $stopwatch->lap('Searching for needles') if $stopwatch;
-
     if (ref($needle) eq 'ARRAY') {
         my @candidates;
-        # try to match all needles and return the one with the highest similarity
         for my $n (@$needle) {
             my $found = $self->search_($n, $threshold, $search_ratio, $stopwatch);
             push @candidates, $found if $found;
-            $stopwatch->lap("** search_: $n->{name}") if $stopwatch;
         }
-
-        @candidates = sort cmp_by_error_type_ @candidates;
-        my $best;
-
-        if (@candidates && $candidates[0]->{ok}) {
-            $best = shift @candidates;
-        }
-        if (wantarray) {
-            return ($best, \@candidates);
-        }
-        else {
-            return $best;
-        }
-    }
-
-    else {
+        @candidates = sort { $b->{ok} <=> $a->{ok} || $a->{error} <=> $b->{error} } @candidates;
+        my $best = (@candidates && $candidates[0]->{ok}) ? shift @candidates : undef;
+        return wantarray ? ($best, \@candidates) : $best;
+    } else {
         my $found = $self->search_($needle, $threshold, $search_ratio, $stopwatch);
         $stopwatch->lap("** search_: single needle: $needle->{name}") if $stopwatch;
         return undef unless $found;
         if (wantarray) {
-            return ($found, undef) if ($found->{ok});
-            return (undef, [$found]);
+            return $found->{ok} ? ($found, undef) : (undef, [$found]);
         }
         return undef unless $found->{ok};
         return $found;
     }
 }
 
-sub write_with_thumbnail ($self, $filename) {
-    $self->write($filename) or die "Unable to write '$filename'\n";
-
-    my $thumb = $self->scale($self->xres() * 45 / $self->yres(), 45);
-    my $dir = File::Basename::dirname($filename) . '/.thumbs';
-    my $base = File::Basename::basename($filename);
-
-    mkdir $dir;
-    $thumb->write("$dir/$base") or die "Unable to write '$dir/$base'\n";
+sub copy ($self) {
+    return tinycv::Image->new($self->ppm_data);
 }
 
 1;
