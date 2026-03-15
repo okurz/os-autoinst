@@ -105,6 +105,13 @@ class QemuBackend(Backend):
 
     def backend_can_handle(self, args: Dict[str, Any]) -> bool:
         function = args.get("function")
-        if function in ["snapshots", "vnc", "serial"]:
+        if function in ["snapshots", "vnc", "serial", "last_screenshot_data"]:
             return True
         return super().backend_can_handle(args)
+
+    def backend_last_screenshot_data(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        import base64
+
+        # Dummy screenshot
+        dummy_image = b"P6\n1 1\n255\n\xff\xff\xff"
+        return {"image": base64.b64encode(dummy_image).decode("utf-8"), "frame": 0}
