@@ -26,7 +26,7 @@ use myjsonrpc;
 
 use constant FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED => 1;
 
-our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo connect_to_isotovideo);
+our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo connect_to_isotovideo runalltests);
 
 # scheduled or run tests
 our %tests;    ## no critic (Variables::ProhibitPackageVars)

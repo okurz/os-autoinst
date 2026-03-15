@@ -9,27 +9,32 @@ use autotest qw(connect_to_isotovideo query_isotovideo);
 use POSIX qw(_exit);
 
 # Start Python isotovideo in background
-my $socket_path = "/tmp/os-autoinst-python-test.sock";
-$ENV{OS_AUTOINST_PYTHON_SOCKET} = $socket_path;    # Not used yet, but good for future
+my $socket_path = "/tmp/os-autoinst-python-test-$$.sock";
+$ENV{OS_AUTOINST_PYTHON_SOCKET} = $socket_path;
 
 my $pid = fork();
 if ($pid == 0) {
     # Child: start python isotovideo
-    # We use a modified script/isotovideo.py that uses the test socket path
-    # and doesn't start another perl process.
+    # Redirect output to a file for debugging
+    open STDOUT, '>', "isotovideo_debug_$$.log" or die $!;
+    open STDERR, '>&', STDOUT or die $!;
     exec('python3', 'script/isotovideo.py', '--debug');
 }
 
 # Wait for socket
-my $retries = 20;
+my $retries = 50;
 while ($retries-- > 0 && !-S $socket_path) {
     select(undef, undef, undef, 0.1);
 }
 
 if (!-S $socket_path) {
+    my $debug_log = -f "isotovideo_debug_$pid.log" ? `cat isotovideo_debug_$pid.log` : "No log file";
     kill 'TERM', $pid;
-    plan skip_all => "Python isotovideo server failed to start at $socket_path";
+    plan skip_all => "Python isotovideo server failed to start at $socket_path. Log: $debug_log";
 }
+
+# Give it a bit more time to actually listen
+sleep 1;
 
 try {
     connect_to_isotovideo($socket_path);
@@ -40,11 +45,13 @@ try {
     query_isotovideo('quit');
 }
 catch ($e) {
-    fail "Integration test failed: $e";
+    my $debug_log = -f "isotovideo_debug_$pid.log" ? `cat isotovideo_debug_$pid.log` : "No log file";
+    fail "Integration test failed: $e. Log: $debug_log";
 }
 finally {
     kill 'TERM', $pid;
     waitpid($pid, 0);
+    unlink "isotovideo_debug_$pid.log" if -f "isotovideo_debug_$pid.log";
 }
 
 done_testing;

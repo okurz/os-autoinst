@@ -38,7 +38,6 @@ class CommandHandler:
         method = cmd.get("cmd")
         if not method:
             return None
-        args = cmd.get("args", {})
         token = cmd.get("json_cmd_token")
 
         log.diag(f"process_command: {method} (token={token})")
@@ -48,19 +47,19 @@ class CommandHandler:
             if os_autoinst_core:
                 # We expect raw image bytes here in a real scenario
                 return os_autoinst_core.match_needle(
-                    args.get("screen", b""),
-                    args.get("needle", b""),
-                    args.get("x", 0),
-                    args.get("y", 0),
-                    args.get("w", 0),
-                    args.get("h", 0),
-                    args.get("margin", 0),
+                    cmd.get("screen", b""),
+                    cmd.get("needle", b""),
+                    cmd.get("x", 0),
+                    cmd.get("y", 0),
+                    cmd.get("w", 0),
+                    cmd.get("h", 0),
+                    cmd.get("margin", 0),
                 )
             return [1.0, 0, 0]
 
         # Route backend commands to runner's backend
         if method.startswith("backend_"):
-            return self.runner.backend.handle_command(method[8:], args)
+            return self.runner.backend.handle_command(method[8:], cmd)
 
         if method == "quit":
             self.runner.loop = False
