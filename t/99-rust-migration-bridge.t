@@ -38,8 +38,9 @@ try:
     
     def run_match_test():
         screen = make_ppm(100, 100, (0, 0, 0), rect=(10, 20, 10, 10, (255, 255, 255)))
-        needle = make_ppm(10, 10, (255, 255, 255))
-        res = os_autoinst_core.match_needle(screen, needle)
+        needle = make_ppm(100, 100, (0, 0, 0), rect=(10, 20, 10, 10, (255, 255, 255)))
+        # Updated signature: match_needle(screen, needle, x, y, w, h, margin)
+        res = os_autoinst_core.match_needle(screen, needle, 10, 20, 10, 10, 5)
         return list(res) if res is not None else None
     
     # Expose helper to global scope for py_eval
@@ -60,6 +61,6 @@ is $sum_res, '30', 'Rust core sum_as_string works through Python bridge';
 # Test the match_needle method with real PPM images
 my $match_res = Inline::Python::py_eval('run_match_test()', 0);
 is ref($match_res), 'ARRAY', 'Rust match_needle returns an array tuple';
-is_deeply $match_res, [10, 20, 0], 'Rust template matching finds exact sub-image at correct coordinates';
+is_deeply $match_res, [1, 10, 20], 'Rust template matching finds exact sub-image at correct coordinates';
 
 done_testing;
