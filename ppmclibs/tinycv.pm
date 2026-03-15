@@ -14,13 +14,27 @@ our @EXPORT = qw();
 our $VERSION = '1.0';
 
 my $rust_initialized = 0;
+my $ffi;
 
 sub _init_rust_bridge () {
     return 1 if $rust_initialized;
     eval {
-        require Inline::Python;
-        my $core_path = $ENV{OS_AUTOINST_RUST_CORE_PATH} || 'rust/os-autoinst-core';
-        Inline::Python::py_eval(<<"EOF");
+        require FFI::Platypus;
+        $ffi = FFI::Platypus->new(lib => 'rust/os-autoinst-core/os_autoinst_core.so');
+        $ffi->attach(rust_match_needle => [
+                'opaque', 'size_t',    # screen
+                'opaque', 'size_t',    # needle
+                'uint32', 'uint32', 'uint32', 'uint32', 'uint32',    # x,y,w,h,margin
+                'float*', 'uint32*', 'uint32*'    # out params
+        ] => 'int');
+        $ffi->attach(rust_save_image => ['opaque', 'size_t', 'string'] => 'int');
+    };
+    if ($@) {
+        bmwqemu::fctwarn("Rust bridge (FFI) init failed: $@. Falling back to Python bridge.");
+        eval {
+            require Inline::Python;
+            my $core_path = $ENV{OS_AUTOINST_RUST_CORE_PATH} || 'rust/os-autoinst-core';
+            Inline::Python::py_eval(<<"EOF");
 import sys
 import os
 sys.path.insert(0, os.path.abspath('$core_path'))
@@ -29,10 +43,11 @@ try:
 except ImportError as e:
     raise ImportError(f"Could not import os_autoinst_core from {os.path.abspath('$core_path')}: {e}")
 EOF
-    };
-    if ($@) {
-        bmwqemu::fctwarn("Rust bridge init failed: $@");
-        return 0;
+        };
+        if ($@) {
+            bmwqemu::fctwarn("Rust bridge (Python) init failed: $@");
+            return 0;
+        }
     }
     $rust_initialized = 1;
     return 1;
@@ -65,12 +80,27 @@ sub new ($class, $data) {
 }
 
 sub search_needle ($self, $needle, $x, $y, $w, $h, $margin) {
+    if ($ffi) {
+        my ($sim, $bx, $by) = (0.0, 0, 0);
+        my $res = rust_match_needle(
+            $self->ppm_data, length($self->ppm_data),
+            $needle->ppm_data, length($needle->ppm_data),
+            $x, $y, $w, $h, $margin,
+            \$sim, \$bx, \$by
+        );
+        return ($sim, $bx, $by) if $res == 1;
+        return () if $res == 0;
+    }
     my $res = Inline::Python::py_call_function("os_autoinst_core", "match_needle", $self->ppm_data, $needle->ppm_data, $x, $y, $w, $h, $margin);
     return @$res if $res;
     return ();
 }
 
 sub write ($self, $filename) {
+    if ($ffi) {
+        my $res = rust_save_image($self->ppm_data, length($self->ppm_data), $filename);
+        return $res == 1 ? 1 : 0;
+    }
     eval { Inline::Python::py_call_function("os_autoinst_core", "save_image", $self->ppm_data, $filename) };
     return $@ ? 0 : 1;
 }

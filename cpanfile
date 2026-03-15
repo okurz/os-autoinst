@@ -19,6 +19,7 @@ requires 'Errno';
 requires 'Exception::Class';
 requires 'Exporter';
 requires 'ExtUtils::testlib';
+requires 'FFI::Platypus';
 requires 'Fcntl';
 requires 'Feature::Compat::Try';
 requires 'File::Basename';
