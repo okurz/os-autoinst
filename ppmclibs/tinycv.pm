@@ -19,6 +19,43 @@ our $VERSION = '1.0';
 
 bootstrap tinycv $VERSION;
 
+my $rust_initialized = 0;
+
+sub _init_rust_bridge () {
+    return 1 if $rust_initialized;
+    eval {
+        require Inline::Python;
+        my $core_path = $ENV{OS_AUTOINST_RUST_CORE_PATH} || 'rust/os-autoinst-core';
+        Inline::Python::py_eval(<<"EOF");
+import sys
+import os
+sys.path.insert(0, os.path.abspath('$core_path'))
+try:
+    import os_autoinst_core
+except ImportError as e:
+    raise ImportError(f"Could not import os_autoinst_core from {os.path.abspath('$core_path')}: {e}")
+EOF
+    };
+    if ($@) {
+        bmwqemu::fctwarn("Rust bridge init failed: $@");
+        return 0;
+    }
+    $rust_initialized = 1;
+    return 1;
+}
+
+if ($ENV{OS_AUTOINST_RUST_CORE}) {
+    no warnings 'redefine';
+    my $orig_search_needle = \&tinycv::Image::search_needle;
+    *tinycv::Image::search_needle = sub ($self, $needle, $x, $y, $w, $h, $margin) {
+        if (_init_rust_bridge()) {
+            my $res = Inline::Python::py_call_function("os_autoinst_core", "match_needle", $self->ppm_data, $needle->ppm_data, $x, $y, $w, $h, $margin);
+            return @$res if $res;
+        }
+        return $orig_search_needle->($self, $needle, $x, $y, $w, $h, $margin);
+    };
+}
+
 package tinycv::Image;
 
 use Mojo::Base -strict, -signatures;

@@ -22,10 +22,11 @@ use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use Mojo::File qw(path);
 use File::Glob qw(bsd_glob);
+use myjsonrpc;
 
 use constant FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED => 1;
 
-our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo);
+our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo connect_to_isotovideo);
 
 # scheduled or run tests
 our %tests;    ## no critic (Variables::ProhibitPackageVars)
@@ -496,6 +497,16 @@ sub start_process () {
 
     close $isotovideo;
     return ($process, $child);
+}
+
+sub connect_to_isotovideo ($socket_path) {
+    socket($isotovideo, AF_UNIX, SOCK_STREAM, 0)
+      or die "socket: $!";
+    my $sun = pack_sockaddr_un($socket_path);
+    connect($isotovideo, $sun)
+      or die "connect: $!";
+    $isotovideo->autoflush(1);
+    bmwqemu::diag "Connected to isotovideo at $socket_path";
 }
 
 sub query_isotovideo ($cmd, $args = undef) {
