@@ -11,6 +11,7 @@ build-rust: ## Build the Rust core component
 	cd rust/os-autoinst-core && cargo build --release
 	cp rust/os-autoinst-core/target/release/libos_autoinst_core.so rust/os-autoinst-core/os_autoinst_core.so
 	ln -sf rust/os-autoinst-core/target/release/videoencoder videoencoder
+	ln -sf rust/os-autoinst-core/target/release/snd2png snd2png
 
 .PHONY: help
 help: build/build.ninja ## Display this help
