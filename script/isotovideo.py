@@ -160,10 +160,6 @@ class Runner:
 
         self.backend.start()
 
-        # Setup default VNC console
-        vnc_port = 5900 + int(self.vars.get("WORKER_ID", 0))
-        self.consoles["vnc"] = console.VNCConsole("vnc", "localhost", vnc_port)
-
         # Start listening socket
         server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         server.bind(self.socket_path)
@@ -243,8 +239,13 @@ class Runner:
 
     def select_console(self, name: str) -> bool:
         if name not in self.consoles:
-            log.diag(f"Console {name} not found")
-            return False
+            # Try to create console dynamically
+            if name == "vnc":
+                vnc_port = 5900 + int(self.vars.get("WORKER_ID", 0))
+                self.consoles["vnc"] = console.VNCConsole("vnc", "localhost", vnc_port)
+            else:
+                log.diag(f"Console type for {name} not implemented yet")
+                return False
 
         self.current_console = self.consoles[name]
         self.current_console.activate()
