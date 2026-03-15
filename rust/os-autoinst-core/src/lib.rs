@@ -1,6 +1,14 @@
-use image::{imageops, GenericImageView};
+use image::{imageops, DynamicImage, GenericImage, ImageFormat};
 use imageproc::template_matching::{match_template, MatchTemplateMethod};
 use pyo3::prelude::*;
+use std::io::Cursor;
+
+fn to_ppm_bytes(img: &DynamicImage) -> PyResult<Vec<u8>> {
+    let mut buf = Vec::new();
+    img.write_to(&mut Cursor::new(&mut buf), ImageFormat::Pnm)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+    Ok(buf)
+}
 
 /// Finds the best match of the `needle` area within the `screen` image (near the expected location).
 /// Both inputs are expected to be raw encoded image bytes (like PNG/PPM).
@@ -44,8 +52,8 @@ fn match_needle(
     }
 
     // Crop images
-    let mut screen_roi = screen_img.crop_imm(scene_x, scene_y, scene_width, scene_height);
-    let mut needle_roi = needle_img.crop_imm(x, y, width, height);
+    let screen_roi = screen_img.crop_imm(scene_x, scene_y, scene_width, scene_height);
+    let needle_roi = needle_img.crop_imm(x, y, width, height);
 
     // Convert to grayscale for matching
     let screen_gray = screen_roi.into_luma8();
@@ -89,6 +97,53 @@ fn match_needle(
     Ok(Some((similarity, final_x, final_y)))
 }
 
+/// Crops a rectangle from the image and returns it as PPM bytes.
+#[pyfunction]
+fn copy_rect(data: &[u8], x: u32, y: u32, w: u32, h: u32) -> PyResult<Vec<u8>> {
+    let img = image::load_from_memory(data)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+    let cropped = img.crop_imm(x, y, w, h);
+    to_ppm_bytes(&cropped)
+}
+
+/// Fills a rectangle with a color and returns the resulting image as PPM bytes.
+#[pyfunction]
+fn replace_rect(
+    data: &[u8],
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
+    r: u8,
+    g: u8,
+    b: u8,
+) -> PyResult<Vec<u8>> {
+    let mut img = image::load_from_memory(data)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+
+    // Create a color pixel
+    let color = image::Rgba([r, g, b, 255]);
+
+    for iy in y..(y + h) {
+        for ix in x..(x + w) {
+            if ix < img.width() && iy < img.height() {
+                img.put_pixel(ix, iy, color);
+            }
+        }
+    }
+
+    to_ppm_bytes(&img)
+}
+
+/// Scales the image to the target width and height and returns it as PPM bytes.
+#[pyfunction]
+fn scale(data: &[u8], w: u32, h: u32) -> PyResult<Vec<u8>> {
+    let img = image::load_from_memory(data)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+    let scaled = img.resize_exact(w, h, imageops::FilterType::Lanczos3);
+    to_ppm_bytes(&scaled)
+}
+
 /// Formats the sum of two numbers as string. Just a test function.
 #[pyfunction]
 fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
@@ -105,11 +160,31 @@ fn save_image(data: &[u8], path: &str) -> PyResult<()> {
     Ok(())
 }
 
+/// Reads an image from disk and returns it as PPM bytes.
+#[pyfunction]
+fn read_image(path: &str) -> PyResult<Vec<u8>> {
+    let img = image::open(path)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+    to_ppm_bytes(&img)
+}
+
+/// Creates a new black image of given size and returns it as PPM bytes.
+#[pyfunction]
+fn new_image(w: u32, h: u32) -> PyResult<Vec<u8>> {
+    let img = DynamicImage::ImageRgb8(image::ImageBuffer::new(w, h));
+    to_ppm_bytes(&img)
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn os_autoinst_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(match_needle, m)?)?;
     m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
     m.add_function(wrap_pyfunction!(save_image, m)?)?;
+    m.add_function(wrap_pyfunction!(read_image, m)?)?;
+    m.add_function(wrap_pyfunction!(new_image, m)?)?;
+    m.add_function(wrap_pyfunction!(copy_rect, m)?)?;
+    m.add_function(wrap_pyfunction!(replace_rect, m)?)?;
+    m.add_function(wrap_pyfunction!(scale, m)?)?;
     Ok(())
 }

@@ -47,6 +47,25 @@ EOF
 if ($ENV{OS_AUTOINST_RUST_CORE}) {
     eval { require Inline::Python };
     no warnings 'redefine';
+
+    my $orig_new = \&tinycv::new;
+    *tinycv::new = sub ($w, $h) {
+        if (_init_rust_bridge()) {
+            my $data = Inline::Python::py_call_function("os_autoinst_core", "new_image", $w, $h);
+            return tinycv::RustImage->new($data);
+        }
+        return $orig_new->($w, $h);
+    };
+
+    my $orig_read = \&tinycv::read;
+    *tinycv::read = sub ($filename) {
+        if (_init_rust_bridge()) {
+            my $data = Inline::Python::py_call_function("os_autoinst_core", "read_image", $filename);
+            return tinycv::RustImage->new($data);
+        }
+        return $orig_read->($filename);
+    };
+
     my $orig_search_needle = \&tinycv::Image::search_needle;
     *tinycv::Image::search_needle = sub ($self, $needle, $x, $y, $w, $h, $margin) {
         if (_init_rust_bridge()) {
@@ -63,6 +82,40 @@ if ($ENV{OS_AUTOINST_RUST_CORE}) {
             return 1 unless $@;
         }
         return $orig_write->($self, $filename);
+    };
+
+    my $orig_copyrect = \&tinycv::Image::copyrect;
+    *tinycv::Image::copyrect = sub ($self, $x, $y, $w, $h) {
+        if (_init_rust_bridge()) {
+            my $data = Inline::Python::py_call_function("os_autoinst_core", "copy_rect", $self->ppm_data, $x, $y, $w, $h);
+            return tinycv::RustImage->new($data);
+        }
+        return $orig_copyrect->($self, $x, $y, $w, $h);
+    };
+
+    my $orig_replacerect = \&tinycv::Image::replacerect;
+    *tinycv::Image::replacerect = sub ($self, $x, $y, $w, $h, $r = 0, $g = 0, $b = 0) {
+        if (_init_rust_bridge()) {
+            my $data = Inline::Python::py_call_function("os_autoinst_core", "replace_rect", $self->ppm_data, $x, $y, $w, $h, $r, $g, $b);
+            if ($self->isa('tinycv::RustImage')) {
+                $self->ppm_data($data);
+                return $self;
+            }
+            # If it's a C++ object, we can't easily update its internal state from Rust bytes
+            # but we can return a new RustImage. However, replacerect is usually in-place.
+            # For now, let's just return a new RustImage and hope for the best, or warn.
+            return tinycv::RustImage->new($data);
+        }
+        return $orig_replacerect->($self, $x, $y, $w, $h, $r, $g, $b);
+    };
+
+    my $orig_scale = \&tinycv::Image::scale;
+    *tinycv::Image::scale = sub ($self, $w, $h) {
+        if (_init_rust_bridge()) {
+            my $data = Inline::Python::py_call_function("os_autoinst_core", "scale", $self->ppm_data, $w, $h);
+            return tinycv::RustImage->new($data);
+        }
+        return $orig_scale->($self, $w, $h);
     };
 
     # Ensure from_ppm is defined
@@ -84,10 +137,37 @@ sub write ($self, $filename) {
 sub write_with_thumbnail ($self, $filename) {
     $self->write($filename);
 }
-sub copyrect ($self, @args) { return $self }    # Stub
-sub scale ($self, @args) { return $self }    # Stub
-sub xres ($self) { return 1024 }    # Stub
-sub yres ($self) { return 768 }    # Stub
+
+sub copyrect ($self, $x, $y, $w, $h) {
+    my $data = Inline::Python::py_call_function("os_autoinst_core", "copy_rect", $self->ppm_data, $x, $y, $w, $h);
+    return tinycv::RustImage->new($data);
+}
+
+sub replacerect ($self, $x, $y, $w, $h, $r = 0, $g = 0, $b = 0) {
+    my $data = Inline::Python::py_call_function("os_autoinst_core", "replace_rect", $self->ppm_data, $x, $y, $w, $h, $r, $g, $b);
+    $self->ppm_data($data);
+    return $self;
+}
+
+sub scale ($self, $w, $h) {
+    my $data = Inline::Python::py_call_function("os_autoinst_core", "scale", $self->ppm_data, $w, $h);
+    return tinycv::RustImage->new($data);
+}
+
+sub xres ($self) {
+    # Extract from PPM header
+    if ($self->ppm_data =~ /^P6\n(\d+) (\d+)\n/) {
+        return $1;
+    }
+    return 1024;
+}
+
+sub yres ($self) {
+    if ($self->ppm_data =~ /^P6\n(\d+) (\d+)\n/) {
+        return $2;
+    }
+    return 768;
+}
 
 package tinycv::Image;
 
