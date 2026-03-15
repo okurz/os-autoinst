@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Test::Warnings ':report_warnings';
 use Mojo::Base -strict, -signatures;
 use Feature::Compat::Try;
 use lib '.';
@@ -37,9 +38,11 @@ try {
 
     # Send quit command to server
     query_isotovideo('quit');
-} catch ($e) {
+}
+catch ($e) {
     fail "Integration test failed: $e";
-} finally {
+}
+finally {
     kill 'TERM', $pid;
     waitpid($pid, 0);
 }

@@ -1,25 +1,55 @@
-use image::{DynamicImage, GenericImageView, ImageBuffer, Luma, RgbaImage};
+use image::{imageops, GenericImageView};
 use imageproc::template_matching::{match_template, MatchTemplateMethod};
 use pyo3::prelude::*;
 
-/// Finds the best match of the `needle` image within the `screen` image.
-/// Both inputs are expected to be raw RGB/RGBA image bytes, but for simplicity
-/// here we can assume they are encoded image bytes (like PNG/PPM) if using `load_from_memory`.
-/// Let's accept encoded image bytes (PNG/PPM/etc) for now.
+/// Finds the best match of the `needle` area within the `screen` image (near the expected location).
+/// Both inputs are expected to be raw encoded image bytes (like PNG/PPM).
+/// Returns (similarity, x, y) to be compatible with os-autoinst expectations.
 #[pyfunction]
-fn match_needle(screen_data: &[u8], needle_data: &[u8]) -> PyResult<Option<(u32, u32, f32)>> {
+fn match_needle(
+    screen_data: &[u8],
+    needle_data: &[u8],
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+    margin: u32,
+) -> PyResult<Option<(f32, u32, u32)>> {
     let screen_img = image::load_from_memory(screen_data)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
     let needle_img = image::load_from_memory(needle_data)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
 
-    // Convert to grayscale for matching
-    let screen_gray = screen_img.into_luma8();
-    let needle_gray = needle_img.into_luma8();
+    // Scale the position if object and scene have different sizes
+    let scaled_x = (x as f32 * screen_img.width() as f32 / needle_img.width() as f32) as i32;
+    let scaled_y = (y as f32 * screen_img.height() as f32 / needle_img.height() as f32) as i32;
 
-    if screen_gray.width() < needle_gray.width() || screen_gray.height() < needle_gray.height() {
-        return Ok(None); // Needle is larger than screen
+    // Define ROI in screen
+    let scene_x = (scaled_x - margin as i32).max(0) as u32;
+    let scene_y = (scaled_y - margin as i32).max(0) as u32;
+    let scene_right =
+        (scaled_x + width as i32 + margin as i32).min(screen_img.width() as i32) as u32;
+    let scene_bottom =
+        (scaled_y + height as i32 + margin as i32).min(screen_img.height() as i32) as u32;
+
+    if scene_right <= scene_x || scene_bottom <= scene_y {
+        return Ok(None);
     }
+
+    let scene_width = scene_right - scene_x;
+    let scene_height = scene_bottom - scene_y;
+
+    if scene_width < width || scene_height < height {
+        return Ok(None);
+    }
+
+    // Crop images
+    let mut screen_roi = screen_img.crop_imm(scene_x, scene_y, scene_width, scene_height);
+    let mut needle_roi = needle_img.crop_imm(x, y, width, height);
+
+    // Convert to grayscale for matching
+    let screen_gray = screen_roi.into_luma8();
+    let needle_gray = needle_roi.into_luma8();
 
     // Perform template matching (Sum of Squared Errors)
     let result = match_template(
@@ -32,15 +62,31 @@ fn match_needle(screen_data: &[u8], needle_data: &[u8]) -> PyResult<Option<(u32,
     let mut min_val = f32::MAX;
     let mut best_loc = (0, 0);
 
-    for (x, y, pixel) in result.enumerate_pixels() {
+    for (res_x, res_y, pixel) in result.enumerate_pixels() {
         if pixel[0] < min_val {
             min_val = pixel[0];
-            best_loc = (x, y);
+            best_loc = (res_x, res_y);
         }
     }
 
-    // A similarity score could be derived from min_val, but we just return it for now.
-    Ok(Some((best_loc.0, best_loc.1, min_val)))
+    // Convert SSE to MSE
+    let num_pixels = (width * height) as f32;
+    let mse = min_val / num_pixels;
+
+    // Similarity mapping from C++: similarity = .9 + (40 - mse) / 380;
+    let mut similarity = 0.9 + (40.0 - mse) / 380.0;
+    if similarity < 0.0 {
+        similarity = 0.0;
+    }
+    if similarity > 1.0 {
+        similarity = 1.0;
+    }
+
+    // Final coordinates in screen space
+    let final_x = best_loc.0 + scene_x;
+    let final_y = best_loc.1 + scene_y;
+
+    Ok(Some((similarity, final_x, final_y)))
 }
 
 /// Formats the sum of two numbers as string. Just a test function.
