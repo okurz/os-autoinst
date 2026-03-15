@@ -311,6 +311,7 @@ use lib '{PROJECT_ROOT}';
 use lib '{PROJECT_ROOT}/ppmclibs/blib/lib';
 use lib '{PROJECT_ROOT}/ppmclibs/blib/arch';
 use bmwqemu;
+use tinycv;
 use autotest qw(connect_to_isotovideo runalltests);
 use OpenQA::Isotovideo::Utils qw(load_test_schedule);
 use needle;

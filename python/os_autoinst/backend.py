@@ -66,9 +66,23 @@ class QemuBackend(Backend):
     def __init__(self):
         super().__init__()
         self.name = "qemu"
-        self.qemu_bin = "qemu-system-x86_64"
+        self.qemu_bin = self._find_qemu_bin()
         self.qmp_socket = "qmp.sock"
         self.qmp = None
+        self.process = None
+
+    def _find_qemu_bin(self) -> str:
+        for b in [
+            "/usr/bin/qemu-kvm",
+            "qemu-kvm",
+            f"qemu-system-{global_vars.get('ARCH', 'x86_64')}",
+        ]:
+            try:
+                subprocess.run([b, "--version"], capture_output=True, check=True)
+                return b
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+        return "qemu-system-x86_64"
 
     def start(self) -> bool:
         diag("Starting QEMU backend")
@@ -78,18 +92,30 @@ class QemuBackend(Backend):
         builder.configure_graphics()
         builder.configure_network()
         builder.configure_storage()
+        builder.configure_boot()
 
         # Add QMP socket
+        if os.path.exists(self.qmp_socket):
+            os.remove(self.qmp_socket)
         builder.add("qmp", f"unix:{self.qmp_socket},server,nowait")
 
         cmd = [self.qemu_bin] + builder.build()
         diag(f"Executing: {' '.join(cmd)}")
 
-        # self.process = subprocess.Popen(cmd)
-        # self.qmp = QmpClient(self.qmp_socket)
-        # if not self.qmp.connect():
-        #     diag("Failed to connect to QMP")
-        #     return False
+        try:
+            self.process = subprocess.Popen(cmd)
+        except Exception as e:
+            diag(f"Failed to start QEMU: {e}")
+            return False
+
+        self.qmp = QmpClient(self.qmp_socket)
+        if not self.qmp.connect():
+            diag("Failed to connect to QMP")
+            self.stop_vm()
+            return False
+
+        # In os-autoinst, we start in paused state ('-S') and then resume
+        self.qmp.execute("cont")
 
         self.started = True
         return True

@@ -51,6 +51,7 @@ class QemuBuilder:
             self.add("enable-kvm")
 
         self.add("no-shutdown")
+        self.add("S")
 
     def configure_serial(self):
         # Default serial setup
@@ -62,10 +63,10 @@ class QemuBuilder:
         if vnc:
             vnc = str(vnc)
             vnc_str = vnc if ":" in vnc else f":{vnc}"
-            vnc_str += " share=force-shared"
+            vnc_str += ",share=force-shared"
             extra = self.vars.get("VNC_EXTRA_VARS")
             if extra:
-                vnc_str += f" {extra}"
+                vnc_str += f",{extra}"
             self.add("vnc", vnc_str)
 
             vnckb = self.vars.get("VNCKB")
@@ -99,6 +100,8 @@ class QemuBuilder:
         iso = self.vars.get("ISO")
         if iso:
             cd_model = self.vars.get("CDMODEL", "scsi-cd")
+            if "scsi" in cd_model:
+                self.add("device", "virtio-scsi-pci,id=scsi0")
             # Assuming a default SCSI controller if scsi-cd is used
             self.add("drive", f"file={iso},format=raw,if=none,id=drive-cd0,media=cdrom")
             self.add("device", f"{cd_model},drive=drive-cd0,id=cd0")
