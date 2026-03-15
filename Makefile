@@ -12,6 +12,9 @@ build-rust: ## Build the Rust core component
 	cp rust/os-autoinst-core/target/release/libos_autoinst_core.so rust/os-autoinst-core/os_autoinst_core.so
 	ln -sf rust/os-autoinst-core/target/release/videoencoder videoencoder
 	ln -sf rust/os-autoinst-core/target/release/snd2png snd2png
+	mkdir -p debugviewer
+	ln -sf ../script/debugviewer.py debugviewer/debugviewer
+	chmod +x script/debugviewer.py
 
 .PHONY: help
 help: build/build.ninja ## Display this help
