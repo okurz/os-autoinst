@@ -7,6 +7,8 @@ import time
 from typing import Any, Dict, List, Optional
 from .log import diag, fctinfo
 from .vars import global_vars
+from .qemu_builder import QemuBuilder
+from .qmp import QmpClient
 
 
 class Backend:
@@ -64,18 +66,42 @@ class QemuBackend(Backend):
     def __init__(self):
         super().__init__()
         self.name = "qemu"
+        self.qemu_bin = "qemu-system-x86_64"
+        self.qmp_socket = "qmp.sock"
+        self.qmp = None
 
     def start(self) -> bool:
         diag("Starting QEMU backend")
-        # In a real implementation, this would build the QEMU command line
-        # and use subprocess.Popen
+        builder = QemuBuilder(global_vars)
+        builder.configure_basics()
+        builder.configure_serial()
+        builder.configure_graphics()
+        builder.configure_network()
+        builder.configure_storage()
+
+        # Add QMP socket
+        builder.add("qmp", f"unix:{self.qmp_socket},server,nowait")
+
+        cmd = [self.qemu_bin] + builder.build()
+        diag(f"Executing: {' '.join(cmd)}")
+
+        # self.process = subprocess.Popen(cmd)
+        # self.qmp = QmpClient(self.qmp_socket)
+        # if not self.qmp.connect():
+        #     diag("Failed to connect to QMP")
+        #     return False
+
         self.started = True
         return True
 
     def stop_vm(self):
         diag("Stopping QEMU VM")
-        # Kill QEMU process here
-        pass
+        if self.qmp:
+            self.qmp.execute("quit")
+            self.qmp.disconnect()
+        if self.process:
+            self.process.terminate()
+            self.process = None
 
     def backend_can_handle(self, args: Dict[str, Any]) -> bool:
         function = args.get("function")

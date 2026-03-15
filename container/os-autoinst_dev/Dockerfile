@@ -44,6 +44,7 @@ RUN zypper in -y -C \
        perl-base \
        pkg-config \
        procps \
+       python3 \
        python3-Pillow-tk \
        python3-gitlint \
        python3-pytest \
