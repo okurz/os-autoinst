@@ -8,4 +8,6 @@ name = "os_autoinst_core"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+image = "0.25.10"
+imageproc = "0.26.1"
 pyo3 = { version = "0.23.0", features = ["extension-module"] }
