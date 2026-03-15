@@ -65,6 +65,36 @@ class CommandHandler:
             console_name = cmd.get("testapi_console")
             return self.runner.select_console(console_name)
 
+        if method == "ocr":
+            # Very basic Tesseract caller port
+            import subprocess
+            import tempfile
+            import base64
+
+            screen_b64 = cmd.get("screen")
+            if not screen_b64:
+                return ""
+
+            screen_data = base64.b64decode(screen_b64)
+
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+                f.write(screen_data)
+                tmp_img = f.name
+
+            try:
+                # Tesseract appends .txt automatically if we don't specify output format
+                subprocess.run(["tesseract", tmp_img, "ocr_out", "quiet"], check=True)
+                with open("ocr_out.txt", "r", encoding="utf-8") as f:
+                    text = f.read()
+                os.remove("ocr_out.txt")
+                return text
+            except Exception as e:
+                log.diag(f"OCR failed: {e}")
+                return ""
+            finally:
+                if os.path.exists(tmp_img):
+                    os.remove(tmp_img)
+
         if method == "send_key":
             key = cmd.get("key")
             if self.runner.current_console:
