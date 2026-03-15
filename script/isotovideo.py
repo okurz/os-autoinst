@@ -143,6 +143,31 @@ class CommandHandler:
         return True
 
 
+class JsonRpcStream:
+    def __init__(self, sock):
+        self.sock = sock
+        self.buffer = b""
+
+    def feed(self, data: bytes) -> List[Dict[str, Any]]:
+        self.buffer += data
+        messages = []
+        while b"\n" in self.buffer:
+            line, self.buffer = self.buffer.split(b"\n", 1)
+            if not line.strip():
+                continue
+            try:
+                messages.append(json.loads(line))
+            except json.JSONDecodeError as e:
+                log.diag(f"JSON parse error: {e} for line: {line}")
+        return messages
+
+    def send(self, obj: Any, token: Optional[str] = None):
+        response = {"ret": obj}
+        if token:
+            response["json_cmd_token"] = token
+        self.sock.sendall(json.dumps(response).encode() + b"\n")
+
+
 class Runner:
     def __init__(self, args):
         self.args = args
@@ -179,7 +204,7 @@ class Runner:
 
         # Main loop
         inputs = [server]
-        clients = {}
+        streams: Dict[socket.socket, JsonRpcStream] = {}
 
         while self.loop:
             try:
@@ -191,7 +216,7 @@ class Runner:
                 if s is server:
                     conn, addr = s.accept()
                     inputs.append(conn)
-                    clients[conn] = b""
+                    streams[conn] = JsonRpcStream(conn)
                 else:
                     try:
                         data = s.recv(4096)
@@ -201,27 +226,17 @@ class Runner:
                     if not data:
                         inputs.remove(s)
                         s.close()
-                        if s in clients:
-                            del clients[s]
+                        if s in streams:
+                            del streams[s]
                     else:
-                        clients[s] += data
-                        if b"\n" in clients[s]:
-                            lines = clients[s].split(b"\n")
-                            for line in lines[:-1]:
-                                if not line:
-                                    continue
-                                try:
-                                    cmd = json.loads(line)
-                                    res = self.handler.process_command(cmd, client=s)
-                                    if res is not None:
-                                        response = {
-                                            "ret": res,
-                                            "json_cmd_token": cmd.get("json_cmd_token"),
-                                        }
-                                        s.sendall(json.dumps(response).encode() + b"\n")
-                                except Exception as e:
-                                    log.diag(f"Error processing command: {e}")
-                            clients[s] = lines[-1]
+                        stream = streams[s]
+                        for cmd in stream.feed(data):
+                            try:
+                                res = self.handler.process_command(cmd, client=s)
+                                if res is not None:
+                                    stream.send(res, cmd.get("json_cmd_token"))
+                            except Exception as e:
+                                log.diag(f"Error processing command: {e}")
 
         self.backend.stop()
         if os.path.exists(self.socket_path):
