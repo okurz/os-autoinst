@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -394,7 +394,7 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
     my $run_ssh_cmd_return = undef;
     my $fake_timeouts = 0;
     my $mock_baseclass = Test::MockModule->new('backend::baseclass');
-    $mock_baseclass->redefine('run_ssh_cmd' => sub ($self, $cmd, %args) {
+    $mock_baseclass->redefine(run_ssh_cmd => sub ($self, $cmd, %args) {
             die 'Time out waiting for data (-9 LIBSSH2_ERROR_TIMEOUT)' if $fake_timeouts-- > 0;
             for my $key (keys(%ssh_expect)) {
                 is($args{$key}, $ssh_expect{$key}, "Correct $key for ssh connection") if $ssh_expect{$key};
@@ -597,7 +597,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
     $console_mock->redefine(which => 1);
 
     my $mock_baseclass = Test::MockModule->new('backend::baseclass');
-    $mock_baseclass->redefine('run_ssh_cmd' => sub {
+    $mock_baseclass->redefine(run_ssh_cmd => sub {
             my ($self, $cmd, %args) = @_;
             push @last_ssh_commands, $cmd;
             push @last_ssh_args, [%args];
@@ -1025,7 +1025,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
     };
 };
 
-subtest 'get_wait_still_screen_on_here_doc_input' => sub {
+subtest get_wait_still_screen_on_here_doc_input => sub {
     set_var(VIRSH_VMM_FAMILY => 'hyperv');
     is($svirt->get_wait_still_screen_on_here_doc_input({}) > 0, 1, 'wait_still_screen on here doc is set for hyperv');
     set_var(VIRSH_VMM_FAMILY => 'vmware');

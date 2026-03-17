@@ -6,8 +6,8 @@
 # This test covers the signalblocker module and tinycv's helper to create
 # threads upfront.
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

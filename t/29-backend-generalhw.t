@@ -3,8 +3,8 @@
 # Copyright 2020 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 # mock sleeps
 my @invoked_cmds;
@@ -111,7 +111,7 @@ subtest 'stop VM' => sub {
     is_deeply(\@invoked_cmds, [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or always_explain \@invoked_cmds;
 };
 
-subtest 'is_shutdown' => sub {
+subtest is_shutdown => sub {
     @invoked_cmds = ();
     is_deeply($backend->is_shutdown, -1, 'return value');
     is_deeply(\@invoked_cmds, [], 'nothing invoked') or always_explain \@invoked_cmds;
@@ -126,7 +126,7 @@ subtest 'is_shutdown' => sub {
     is_deeply(\@invoked_cmds, [[$cmd_ctl, 'is_shutdown']], 'is_shutdown invoked') or always_explain \@invoked_cmds;
 };
 
-subtest 'eject_cd' => sub {
+subtest eject_cd => sub {
     @invoked_cmds = ();
     $backend->eject_cd;
     $backend->eject_cd({id => 'cd1'});

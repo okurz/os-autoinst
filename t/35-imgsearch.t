@@ -3,11 +3,11 @@
 # Copyright 2021 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Test::Most;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Mojo::File qw(path);
 use Mojo::JSON qw(decode_json);
 use Test::Output qw(stderr_like);

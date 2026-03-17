@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
-use Test::Most;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -121,7 +121,7 @@ subtest 'download added URLs' => sub {
     ], 'right URLs queried');
 };
 
-subtest '_download_file' => sub {
+subtest _download_file => sub {
     $user_agent_mock->redefine(get => sub { Mojo::Transaction::HTTP->new });
     my $http = Test::MockModule->new('Mojo::Transaction::HTTP');
     $http->redefine(result => sub { Mojo::Message::Response->new->code(404) });

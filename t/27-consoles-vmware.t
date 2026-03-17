@@ -3,9 +3,9 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Test::Most;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use utf8;
 
 # disable time limit when testing against real VMWare instance
@@ -130,7 +130,7 @@ subtest 'deducing VNC over WebSockets URL from vars' => sub {
 subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     # define simple WebSocket server for testing
     package TestWebSocketApp {
-        use Mojo::Base 'Mojolicious', -signatures;
+        use Mojo::Base 'Mojolicious', -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
         has received_data => '';
 
         sub startup ($self) {
@@ -141,7 +141,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     }    # uncoverable statement
 
     package TestWebSocketApp::Controller::Test {
-        use Mojo::Base 'Mojolicious::Controller', -signatures;
+        use Mojo::Base 'Mojolicious::Controller', -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
         sub start_ws ($self) {
             my $sent_everything;

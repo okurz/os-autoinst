@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -113,7 +113,7 @@ subtest 'eject cd' => sub {
     is_deeply $called{handle_qmp_command}[1], \%custom_remove_params, 'blockdev-remove-medium called with custom parameters';
 };
 
-subtest 'disconnect_usb' => sub {
+subtest disconnect_usb => sub {
     my %default_delete_params = (execute => 'device_del', arguments => {id => 'usbstick-device'});
     my %custom_delete_params = (execute => 'device_del', arguments => {id => 'usb1'});
 
@@ -127,7 +127,7 @@ subtest 'disconnect_usb' => sub {
 
 
 
-subtest 'switch_network' => sub {
+subtest switch_network => sub {
     my %switch_network_params = (arguments => {name => 'qanet0', up => Mojo::JSON->false}, execute => 'set_link');
     $called{handle_qmp_command} = undef;
 
@@ -151,7 +151,7 @@ subtest 'execute arbitrary QMP command' => sub {
     is_deeply $called{handle_qmp_command}, [\%query], 'query params passed as-is';
 };
 
-subtest 'process_qemu_output' => sub {
+subtest process_qemu_output => sub {
     my $qemu_log = <<'EOF';
 QEMU emulator version 4.2.1 (openSUSE Leap 15.2)
 Copyright 2003-2019 Fabrice Bellard and the QEMU Project developers
@@ -231,8 +231,8 @@ sub test_boot_options ($boot, $arch, $pxe, $expected) {
     }
 }
 
-subtest 'qemu_net_boot' => sub {
-    subtest 'qemu_bootindex_default' => sub {
+subtest qemu_net_boot => sub {
+    subtest qemu_bootindex_default => sub {
         my $cmdline = qemu_cmdline(ARCH => 'x86_64');
         like $cmdline, qr|mac=\d{2}:\d{2}:\d{2}:\d{2}:\d{2}:\d{2}\s|, 'device does not set bootindex by default on x86_64';
         like $cmdline, qr|-boot once=d|, 'boot parameter is set to once';

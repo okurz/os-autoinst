@@ -3,8 +3,8 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Mojo::Base -strict, -signatures;
-use Test::Most;
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings qw(:report_warnings);
 use Test::MockObject;
 use Test::MockModule;

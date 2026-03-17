@@ -4,13 +4,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Mojo::Base -strict, -signatures;
 use File::Find;
 require IPC::System::Simple;
 use autodie ':all';
@@ -86,7 +85,7 @@ subtest 'query isotovideo version' => sub {
     $t->json_is({VERSION => 'COOL'});
 };
 
-subtest 'isotovideo_post_command' => sub {
+subtest isotovideo_post_command => sub {
     $t->post_ok("$base_url/$job/isotovideo/stop_processing_isotovideo_commands");
     $t->status_is(404)->content_type_is('text/html;charset=UTF-8');
 };

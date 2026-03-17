@@ -6,9 +6,9 @@
 # This test covers the signalblocker module and tinycv's helper to create
 # threads upfront.
 
-use Test::Most;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Mock::Time;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 BEGIN {
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT} = 1;

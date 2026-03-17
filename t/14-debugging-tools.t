@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings ':report_warnings';
 use Test::MockModule;
 use FindBin '$Bin';

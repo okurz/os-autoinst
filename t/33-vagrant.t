@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
 use Cwd qw(abs_path);
-use Test::Most;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 use File::chdir;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::MockRandom 'backend::vagrant';
 use Test::MockObject;
 use Test::MockModule;

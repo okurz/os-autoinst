@@ -2,8 +2,8 @@
 # Copyright 2018-2021 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

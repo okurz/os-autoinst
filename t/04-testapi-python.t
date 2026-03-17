@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
-use Test::Most;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 BEGIN {
     unshift @INC, '..';

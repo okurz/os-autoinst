@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Mojo::Base -strict;
-use Test::Most;
+use Mojo::Base;    ## no critic (OpenQA::RedundantStrictWarning)
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

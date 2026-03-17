@@ -3,8 +3,8 @@
 # Copyright 2021 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings qw(:all :report_warnings);
 use Test::Output qw(combined_like);
 use Test::MockModule;
@@ -15,7 +15,7 @@ use OpenQA::Test::TimeLimit '5';
 
 my @wait_serial_calls;
 
-subtest 'script_run' => sub {
+subtest script_run => sub {
     my $d = distribution->new;
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(type_string => undef);
@@ -109,7 +109,7 @@ subtest 'set expected serial and autoinst failures' => sub {
     is_deeply($d->{autoinst_failures}, _generate_failures('Hard', %hard_failure), 'Expected Hard autoinst_failures matched');
 };
 
-subtest 'disable_key_repeat' => sub {
+subtest disable_key_repeat => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my @called;
     $mock_testapi->redefine(enter_cmd => sub { push @called, @_ });

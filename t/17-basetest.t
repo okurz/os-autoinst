@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -416,7 +416,7 @@ subtest record_screenmatch => sub {
       or always_explain $basetest_for_workaround->{details};
 };
 
-subtest 'register_extra_test_results' => sub {
+subtest register_extra_test_results => sub {
     my $test = basetest->new('foo');
     $test->{script} = '/tests/foo/bar.pm';
 
@@ -448,7 +448,7 @@ subtest 'register_extra_test_results' => sub {
     is($test->{extra_test_results}->[2]->{script}, $test->{script}, 'undefined script is replaced with self->{script}.');
 };
 
-subtest 'execute_time' => sub {
+subtest execute_time => sub {
     my $basetest_class = 'basetest';
     my $mock_basetest = Test::MockModule->new($basetest_class);
     my $test = basetest->new('foo');

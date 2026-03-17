@@ -18,7 +18,7 @@ Show this help.
 
 package OVS;
 
-use Mojo::Base 'Net::DBus::Object', -signatures;
+use Mojo::Base 'Net::DBus::Object', -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use autodie ':all';
 use Feature::Compat::Try;
 use Net::DBus::Exporter 'org.opensuse.os_autoinst.switch';
@@ -275,7 +275,7 @@ sub show ($self) {
 
 ################################################################################
 package main;
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -strict, -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use Net::DBus;
 use Net::DBus::Reactor;

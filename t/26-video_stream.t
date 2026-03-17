@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Config;
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Feature::Compat::Try;
 use Mojo::UserAgent;
 use Mojo::Transaction::HTTP;

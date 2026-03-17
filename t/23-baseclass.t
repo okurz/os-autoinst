@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -49,7 +49,7 @@ $baseclass_mock->redefine(request_screen_update => sub ($self, $args) {
 
 my $baseclass = backend::baseclass->new();
 
-subtest 'format_vtt_timestamp' => sub {
+subtest format_vtt_timestamp => sub {
     my $timestamp = 1543917024.24791;
     $baseclass->{video_frame_number} = 0;
     is($baseclass->format_vtt_timestamp($timestamp),
@@ -426,7 +426,7 @@ subtest 'running test' => sub {
     }
 };
 
-subtest 'wait_serial' => sub {
+subtest wait_serial => sub {
     #mock console settings
     my $current_console = Test::MockObject->new();
     $current_console->set_false('is_serial_terminal');

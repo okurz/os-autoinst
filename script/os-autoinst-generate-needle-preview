@@ -127,7 +127,7 @@ if ($ARGV[0] eq '-') {
     }
 } else {
     for (@ARGV) {
-        $has_error |= process_file $_;
+        $has_error |= process_file $line;
     }
 }
 exit $has_error;

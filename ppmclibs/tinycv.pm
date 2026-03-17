@@ -4,7 +4,7 @@
 
 package tinycv;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -strict, -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use bmwqemu 'fctwarn';
 use File::Basename;
@@ -21,7 +21,7 @@ bootstrap tinycv $VERSION;
 
 package tinycv::Image;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -strict, -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 sub mean_square_error ($areas) {
     my $mse = 0.0;

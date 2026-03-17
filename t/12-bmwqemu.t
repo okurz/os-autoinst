@@ -3,8 +3,8 @@
 # Copyright 2017-2021 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Mock::Time;
 use Feature::Compat::Try;
 use FindBin '$Bin';
@@ -30,7 +30,7 @@ sub read_vars () {
     catch ($e) { die "parse error in vars.json:\n$e" }    # uncoverable statement
 }
 
-subtest 'log_call' => sub {
+subtest log_call => sub {
     require bmwqemu;
 
     sub log_call_test {
@@ -78,7 +78,7 @@ subtest 'log_call' => sub {
     stderr_like { log_call_test_secret(value => undef) } qr{\Q<<< main::log_call_test_secret(value=undef)}, 'Undef as value';
 };
 
-subtest 'update_line_number' => sub {
+subtest update_line_number => sub {
     $log::direct_output = 1;
     bmwqemu::init_logger();
     ok !bmwqemu::update_line_number(), 'update_line_number needs current_test defined';
@@ -102,7 +102,7 @@ subtest 'CASEDIR is mandatory' => sub {
     ok(!$vars{CASEDIR}, 'CASEDIR not set');
 };
 
-subtest 'save_vars' => sub {
+subtest save_vars => sub {
     my $dir = "$data_dir/tests";
     create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials'});
     $bmwqemu::openqa_default_share = $data_dir;

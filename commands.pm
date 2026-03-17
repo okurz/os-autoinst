@@ -21,7 +21,6 @@ BEGIN {
     $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
 }
 
-use Mojolicious::Lite -signatures;
 use Mojo::IOLoop;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';

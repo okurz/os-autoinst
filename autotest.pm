@@ -128,10 +128,12 @@ references for them.
 sub _lua_use ($perlmod, $import = undef) {
     eval "use $perlmod ()";
     if ($@) { die "Could not load '$perlmod': $@" }
-    my %exports;
-    no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict, TestingAndDebugging::ProhibitProlongedStrictureOverride)
-    my @export = @{"${perlmod}::EXPORT"};
-    my @export_ok = @{"${perlmod}::EXPORT_OK"};
+    my (@export, @export_ok);
+    {
+        no strict 'refs';    ## no critic (TestingAndDebugging::ProhibitNoStrict, TestingAndDebugging::ProhibitProlongedStrictureOverride)
+        @export    = @{"${perlmod}::EXPORT"};
+        @export_ok = @{"${perlmod}::EXPORT_OK"};
+    }
     @exports{@export, @export_ok} = ();
     my @to_import;
     if ($import) {
@@ -229,17 +231,17 @@ sub _make_test_code_to_eval ($script_path, $script, $name, $is_python) {
             autotest::lua_append_path("%s/../lib/?.lua");
             autotest::lua_eval('dofile("%s")');
 
-            sub run($self) {
+            sub run ($self) {
                 # not passing $self as blessed objects generate a warning
                 #autotest::lua_set("p1", $self);
                 return autotest::lua_eval('run()')
             }
 
-            sub test_flags($self) {
+            sub test_flags ($self) {
                 return autotest::lua_eval('_G["test_flags"] and test_flags() or {dummy = 1}')
             }
 
-            sub post_fail_hook($self) {
+            sub post_fail_hook ($self) {
                 return autotest::lua_eval('_G["post_fail_hook"] and post_fail_hook() or 1')
             }
             EOM

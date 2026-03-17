@@ -176,11 +176,11 @@ EOM
     }
     $cpan .= <<"EOM";
 
-on 'test' => sub {
+on test => sub {
 $test_requires
 };
 
-on 'develop' => sub {
+on develop => sub {
 $devel_requires
 };
 

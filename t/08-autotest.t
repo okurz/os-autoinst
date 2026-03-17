@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use Mojo::File 'path';
 use FindBin '$Bin';
@@ -556,7 +556,7 @@ subtest 'test skipping tests' => sub {
     stderr_like { autotest::runalltests } qr/skipping/, 'Skipping Test Run';
 };
 
-subtest 'start_process' => sub {
+subtest start_process => sub {
     my $fh = path(\'fake-file')->open('<');
     $autotest::isotovideo = $fh;
     # Test the start_process subroutine
@@ -572,9 +572,9 @@ subtest 'start_process' => sub {
     stderr_like { $process->{code}->(); } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 };
 
-subtest 'lua_use' => sub {
+subtest lua_use => sub {
     my $lua_vars = {};
-    $mock_autotest->mock('lua_set' => sub ($k, $v) { $lua_vars->{$k} = $v; });
+    $mock_autotest->mock(lua_set => sub ($k, $v) { $lua_vars->{$k} = $v; });
     autotest::_lua_use('testapi');
     is $lua_vars->{realname}, 'Bernhard M. Wiedemann', 'Check importing strings';
     is ref($lua_vars->{assert_script_run}), 'CODE', 'Check importing functions';
@@ -588,7 +588,7 @@ subtest 'lua_use' => sub {
     is_deeply $lua_vars->{testhash}, {foo => 'bar'}, 'Import Hash';
 };
 
-subtest 'lua_runtest' => sub {
+subtest lua_runtest => sub {
     plan skip_all => 'Inline::Lua is not available' unless $has_lua;
 
     my $luatest = $autotest::tests{'luatests-unittest_lua'};

@@ -1,8 +1,9 @@
 #!/usr/bin/perl
 
-use Test::Most;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings ':report_warnings';
-use Mojo::Base -strict, -signatures;
+use v5.20;    ## no critic (OpenQA::RedundantStrictWarning)
+use experimental 'signatures';
 use OpenQA::NamedIOSelect;
 
 subtest NamedIOSelect => sub {

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Term::ANSIColor qw(colorstrip);
 use Test::Warnings ':report_warnings';
 use Test::MockModule;
@@ -195,7 +195,7 @@ subtest 'isotovideo with wheels' => sub {
             @diags = ();
             path($wheels_dir, 'writer', 'lib', 'Copy', 'Writer')->make_path->child("Content$i.pm")->spew(<<~"EOM");
             package Copy::Writer::Content$i;
-            use Mojo::Base 'Exporter';
+            use Mojo::Base 'Exporter';    ## no critic (OpenQA::RedundantStrictWarning)
             our \@EXPORT_OK = qw(write);
             sub write { "val$i"};
             1;

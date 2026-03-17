@@ -2,9 +2,9 @@
 # Copyright Roland Clobus <rclobus@rclobus.nl>
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Test::Most;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings ':report_warnings';
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use File::Compare qw(compare);
 use Mojo::File qw(path tempdir);
 

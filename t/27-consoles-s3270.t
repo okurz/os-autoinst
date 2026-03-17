@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Mock::Time;
 use Test::MockModule 'strict';
 use Test::MockObject;
@@ -65,8 +65,8 @@ subtest 's3270_console activate' => sub {
             return ['CONNECT'] if keys %arg == 1 && exists $arg{buffer_ready} && $count == 4;
     });
     $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
-            return {'command_output' => ['success'], 'command_status' => 'ok', 'terminal_status' => "Connection to C($bmwqemu::vars{ZVM_HOST}) OK"} if $command =~ /Wait\([1-9],Output\)/;
-            return {'command_status' => 'any', 'terminal_status' => "Connection to C($bmwqemu::vars{ZVM_HOST}) OK"};
+            return {command_output => ['success'], command_status => 'ok', terminal_status => "Connection to C($bmwqemu::vars{ZVM_HOST}) OK"} if $command =~ /Wait\([1-9],Output\)/;
+            return {command_status => 'any', terminal_status => "Connection to C($bmwqemu::vars{ZVM_HOST}) OK"};
     });
     cmp_deeply(
         [warnings { $s3270_console->activate(); }],
@@ -118,15 +118,15 @@ subtest 'expect_3270 tests' => sub {
     my $count = 0;
     my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
     $s3270_console_mock->redefine(send_3270 => sub ($self, $command = '', %arg) {
-            my $return_lines = {'command_output' => ['OutputArea', 'InputLine', 'RUNNING']};
-            $return_lines = {'command_output' => ['success'], 'command_status' => 'ok'} if $command =~ /\b0\b/;
-            $return_lines = {'command_output' => ['Wait: Timed out'], 'command_status' => 'any'} if $command =~ /Wait\([1-9],Output\)/;
+            my $return_lines = {command_output => ['OutputArea', 'InputLine', 'RUNNING']};
+            $return_lines = {command_output => ['success'], command_status => 'ok'} if $command =~ /\b0\b/;
+            $return_lines = {command_output => ['Wait: Timed out'], command_status => 'any'} if $command =~ /Wait\([1-9],Output\)/;
             if ($command eq 'Snap(Ascii)') {
                 ff(5);
-                $return_lines = {'command_output' => ["\n", 'InputLine', 'DONE']} if $count == 3;
-                $return_lines = {'command_output' => ['OutputArea', 'InputLine', 'DONE']} if $count == 2;
-                $return_lines = {'command_output' => ['OutputArea', 'InputLine', 'RUNNING']} if $count == 1;
-                $return_lines = {'command_output' => ['OutputArea', 'InputLine', 'MORE...']} if $count == 0;
+                $return_lines = {command_output => ["\n", 'InputLine', 'DONE']} if $count == 3;
+                $return_lines = {command_output => ['OutputArea', 'InputLine', 'DONE']} if $count == 2;
+                $return_lines = {command_output => ['OutputArea', 'InputLine', 'RUNNING']} if $count == 1;
+                $return_lines = {command_output => ['OutputArea', 'InputLine', 'MORE...']} if $count == 0;
                 $count += 1;
             }
             return $return_lines;
@@ -148,7 +148,7 @@ subtest 'expect_3270 tests' => sub {
 
 subtest 'wait_output test' => sub {
     my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
-    $s3270_console_mock->redefine(send_3270 => {'command_output' => ['None'], 'command_status' => 'any'});
+    $s3270_console_mock->redefine(send_3270 => {command_output => ['None'], command_status => 'any'});
     warnings { throws_ok { $s3270_console->wait_output() } qr/has the s3270 wait timeout.*\n.*/, 'wait timeout failure expected' };
 };
 
@@ -160,13 +160,13 @@ subtest 'sequence_3270 test' => sub {
 
 subtest 'cp_disconnect test' => sub {
     my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
-    $s3270_console_mock->redefine(send_3270 => {'command_output' => ['success'], 'command_status' => 'ok'});
+    $s3270_console_mock->redefine(send_3270 => {command_output => ['success'], command_status => 'ok'});
     isa_ok $s3270_console->cp_disconnect(), 'HASH';
 };
 
 subtest 's3270 disable test' => sub {
     my $s3270_console_mock = Test::MockModule->new('consoles::s3270');
-    $s3270_console_mock->redefine(send_3270 => {'command_output' => ['success'], 'command_status' => 'ok'});
+    $s3270_console_mock->redefine(send_3270 => {command_output => ['success'], command_status => 'ok'});
     isa_ok $s3270_console->disable(), 'HASH', 'disable can be called';
 };
 

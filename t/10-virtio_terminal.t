@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 # Copyright 2020-2021 SUSE LLC
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 use Test::Warnings qw(:all :report_warnings);
 
 # OpenQA::Test::TimeLimit not used as `prepare_pipes` defines an ALRM handler

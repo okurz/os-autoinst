@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -262,7 +262,7 @@ subtest 'set_pause_on_next_command, postponing command, resuming' => sub {
 
 };
 
-subtest 'set_pause_on_failure' => sub {
+subtest set_pause_on_failure => sub {
     # enable pausing on failure
     is $command_handler->pause_on_failure, 0, 'pause on failure disabled by default';
     $command_handler->process_command($answer_fd, {cmd => 'set_pause_on_failure', flag => 1});
@@ -284,7 +284,7 @@ subtest 'set_pause_on_failure' => sub {
     is $command_handler->reason_for_pause, undef, 'test execution not paused due to failure if disabled';
 };
 
-subtest 'assert_screen' => sub {
+subtest assert_screen => sub {
     my %args = (
         mustmatch => [qw(foo bar)],
         timeout => 25,
@@ -303,7 +303,7 @@ subtest 'assert_screen' => sub {
     is($command_handler->current_api_function, 'assert_screen');
 };
 
-subtest 'check_screen' => sub {
+subtest check_screen => sub {
     my %args = (
         mustmatch => [qw(foo bar)],
         timeout => 25,
@@ -321,7 +321,7 @@ subtest 'check_screen' => sub {
     is($command_handler->current_api_function, 'check_screen');
 };
 
-subtest 'set_assert_screen_timeout' => sub {
+subtest set_assert_screen_timeout => sub {
     $command_handler->process_command($answer_fd, {
             cmd => 'set_assert_screen_timeout',
             timeout => 43,
@@ -349,7 +349,7 @@ subtest version => sub {
     }, 'response for version');
 };
 
-subtest 'send_clients' => sub {
+subtest send_clients => sub {
     $command_handler->process_command($answer_fd, {
             cmd => 'send_clients',
             set_current_test => 'FOO',
@@ -370,7 +370,7 @@ subtest 'invalid command' => sub {
     } qr{isotovideo: unknown command foobar}, 'Correct error message for unknown command';
 };
 
-subtest '_is_configured_to_pause_on_timeout' => sub {
+subtest _is_configured_to_pause_on_timeout => sub {
     my $mock = Test::MockModule->new('OpenQA::Isotovideo::CommandHandler');
     $mock->redefine(pause_on_screen_mismatch => 'foo');
     my $result = $command_handler->_is_configured_to_pause_on_timeout({});

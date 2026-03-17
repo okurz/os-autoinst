@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-use Test::Most;
-use Mojo::Base -strict, -signatures;
+use Test::Most;    ## no critic (OpenQA::RedundantStrictWarning)
+use Mojo::Base -signatures;    ## no critic (OpenQA::RedundantStrictWarning)
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -129,7 +129,7 @@ my $mod2 = Test::MockModule->new('testapi');
 
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 
-subtest 'type_string' => sub {
+subtest type_string => sub {
     $mod2->redefine(wait_screen_change => sub : prototype(&@) {
             my ($callback, $timeout, %args) = @_;
             is $timeout, 30, 'expected timeout passed to wait_screen_change';
@@ -202,7 +202,7 @@ subtest 'type_string' => sub {
     $cmds = [];
 };
 
-subtest 'wait_screen_change' => sub {
+subtest wait_screen_change => sub {
     my $callback_invoked = $fake_timeout = 0;
     ok wait_screen_change { $callback_invoked = 1 }, 'change found';
     ok $callback_invoked, 'callback invoked';
@@ -221,27 +221,27 @@ subtest 'wait_screen_change' => sub {
     $cmds = [];
 };
 
-subtest 'enter_cmd' => sub {
+subtest enter_cmd => sub {
     enter_cmd 'true';
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => "true\n"}]);
     $cmds = [];
 };
 
-subtest 'eject_cd' => sub {
+subtest eject_cd => sub {
     eject_cd;
     eject_cd device => 'foo';
     is_deeply $cmds, [{cmd => 'backend_eject_cd'}, {cmd => 'backend_eject_cd', device => 'foo'}];
     $cmds = [];
 };
 
-subtest 'disconnect_usb' => sub {
+subtest disconnect_usb => sub {
     disconnect_usb;
     disconnect_usb device => 'foo';
     is_deeply $cmds, [{cmd => 'backend_disconnect_usb'}, {cmd => 'backend_disconnect_usb', device => 'foo'}];
     $cmds = [];
 };
 
-subtest 'switch_network' => sub {
+subtest switch_network => sub {
     switch_network network_enabled => 0;
     is_deeply $cmds, [{cmd => 'backend_switch_network', network_enabled => 0}] or always_explain $cmds;
     $cmds = [];
@@ -291,7 +291,7 @@ subtest 'send_key with wait_screen_change' => sub {
     ok($wait_screen_change_called, 'wait_screen_change called by send_key');
 };
 
-subtest 'assert_screen_change' => sub {
+subtest assert_screen_change => sub {
     combined_like { testapi::assert_screen_change { say 'something' } } qr/something/, 'callback invoked';
 };
 
@@ -317,7 +317,7 @@ is(is_serial_terminal, 0, 'Not a serial terminal');
 is(current_console, 'a-console', 'Current console is the a-console');
 is console('b-console')->{console}, 'b-console', 'new console created on the fly';
 
-subtest 'script_run' => sub {
+subtest script_run => sub {
     # just save ourselves some time during testing
     $mock_bmwqemu->noop('wait_for_one_more_screenshot');
 
@@ -409,7 +409,7 @@ sub assert_script_sudo_test ($waittime, $is_serial_terminal) {
     is $script_sudo, 'bash', 'script_sudo called like expected(2)';
 }
 
-subtest 'assert_script_sudo' => sub {
+subtest assert_script_sudo => sub {
     subtest('Test assert_script_sudo', \&assert_script_sudo_test, 0, 0);
     subtest('Test assert_script_sudo', \&assert_script_sudo_test, 0, 1);
     subtest('Test assert_script_sudo', \&assert_script_sudo_test, 10, 0);
@@ -433,7 +433,7 @@ subtest 'handle found needle' => sub {
     is match_has_tag('foo'), 1, 'match_has_tag now returns true for tag of matched needle';
 };
 
-subtest 'check_assert_screen' => sub {
+subtest check_assert_screen => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
 
@@ -581,7 +581,7 @@ subtest 'check_assert_screen' => sub {
     };
 };
 
-subtest 'upload_logs' => sub {
+subtest upload_logs => sub {
     $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
     $bmwqemu::vars{QEMUPORT} = '4242';
     $bmwqemu::vars{JOBTOKEN} = 'LookAtMeImAToken';
@@ -632,7 +632,7 @@ subtest 'upload_logs' => sub {
     $cmds = [];
 };
 
-subtest 'script_sudo' => sub {
+subtest script_sudo => sub {
     script_sudo 'rm /boot/grub/menu.lst';
     is_deeply($cmds, [
             {
@@ -661,7 +661,7 @@ subtest 'script_sudo' => sub {
     $cmds = [];
 };
 
-subtest 'parse_extra_log' => sub {
+subtest parse_extra_log => sub {
     my $mock_parser = Test::MockObject->new();
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->define(parser => sub { $mock_parser });
@@ -679,7 +679,7 @@ subtest 'parse_extra_log' => sub {
 
 ok(save_screenshot);
 
-subtest 'assert_and_click' => sub {
+subtest assert_and_click => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my @areas = ({x => 1, y => 2, w => 10, h => 20});
     $mock_testapi->redefine(assert_screen => {area => \@areas});
@@ -761,7 +761,7 @@ subtest 'assert_and_click' => sub {
     is_deeply($cmds->[-1], {cmd => 'backend_mouse_button', button => 'left', bstate => 0}, 'assert_and_click succeeds and keep mouse with mousehide => -1');
 };
 
-subtest 'assert_and_dclick' => sub {
+subtest assert_and_dclick => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(assert_screen => {area => [{x => 1, y => 2, w => 3, h => 4}]});
     ok(assert_and_dclick('foo', mousehide => 1));
@@ -774,7 +774,7 @@ subtest 'assert_and_dclick' => sub {
     is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', border_offset => 0}, 'assert_and_dclick succeeds and hides mouse with mousehide => 1');
 };
 
-subtest 'record_info' => sub {
+subtest record_info => sub {
     ok(record_info('my title', "my output\nnext line"), 'simple call');
     ok(record_info('my title', 'output', result => 'ok', resultname => 'foo'), 'all arguments');
     throws_ok { record_info('my title', 'output', result => 'not supported', resultname => 'foo') } qr/unsupported/, 'invalid result';
@@ -831,12 +831,12 @@ sub script_output_test ($is_serial_terminal) {
     is script_output('echo foo', type_command => 0), 'foo', 'script_output with type_command => 0 output in a file';
 }
 
-subtest 'script_output' => sub {
+subtest script_output => sub {
     subtest('Test with is_serial_terminal==0', \&script_output_test, 0);
     subtest('Test with is_serial_terminal==1', \&script_output_test, 1);
 };
 
-subtest 'validate_script_output' => sub {
+subtest validate_script_output => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(script_output => 'output');
     ok(!validate_script_output('script', sub { m/output/ }), 'validating output with default timeout');
@@ -925,7 +925,7 @@ subtest 'test console::console::screen throws if not implemented' => sub {
     throws_ok { consoles::console->new('dummy-console', {tty => 3})->screen } qr/needs to be implemented/, 'expected error message';
 };
 
-subtest 'check_assert_shutdown' => sub {
+subtest check_assert_shutdown => sub {
     # Test cases, when shutdown is finished before timeout is hit
     $mod->redefine(read_json => {ret => 1});
     ok(check_shutdown, 'check_shutdown should return "true" if shutdown finished before timeout is hit');
@@ -940,7 +940,7 @@ subtest 'check_assert_shutdown' => sub {
     $mod->redefine(read_json => \&fake_read_json);
 };
 
-subtest 'compat_args' => sub {
+subtest compat_args => sub {
     my %def_args = (a => 'X', b => 123, c => undef);
     is_deeply({testapi::compat_args(\%def_args, [], a => 'X', b => 123)}, \%def_args, 'Check defaults 1');
     is_deeply({testapi::compat_args(\%def_args, [], a => 'X')}, \%def_args, 'Check defaults 2');
@@ -1021,13 +1021,13 @@ subtest 'host_ip, autoinst_url' => sub {
     is(autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns');
 };
 
-subtest 'data_url' => sub {
+subtest data_url => sub {
     like data_url('foo'), qr{localhost.*data/foo}, 'data_url returns local data reference by default';
     $bmwqemu::vars{ASSET_3} = 'foo.xml';
     like data_url('ASSET_3'), qr{other/foo.xml}, 'data_url returns local data reference by default';
 };
 
-subtest '_calculate_clickpoint' => sub {
+subtest _calculate_clickpoint => sub {
     my %fake_needle = (
         area => [{x => 10, y => 10, w => 20, h => 30}],
     );
@@ -1055,7 +1055,7 @@ subtest '_calculate_clickpoint' => sub {
     is $y, 25, 'clickpoint y from needle';
 };
 
-subtest 'mouse_drag' => sub {
+subtest mouse_drag => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my @area = ({x => 100, y => 100, w => 20, h => 20});
     $mock_testapi->redefine(assert_screen => {area => \@area});
@@ -1170,7 +1170,7 @@ subtest 'mouse_drag' => sub {
     throws_ok { mouse_drag(startx => $endx, starty => $endy) } qr/ending.*point.*not.*provided/, 'faile for no end';
 };
 
-subtest 'show_curl_progress_meter' => sub {
+subtest show_curl_progress_meter => sub {
     $testapi::serialdev = 'ttyS0';
     $bmwqemu::vars{UPLOAD_METER} = 1;
     is(testapi::show_curl_progress_meter(), '-o /dev/ttyS0 ', 'show_curl_progress_meter returns curl output parameter pointing to /dev/ttyS0');
@@ -1178,7 +1178,7 @@ subtest 'show_curl_progress_meter' => sub {
     is(testapi::show_curl_progress_meter(), '', 'show_curl_progress_meter returns "0" when UPLOAD_METER is not set');
 };
 
-subtest 'get_wait_still_screen_on_here_doc_input' => sub {
+subtest get_wait_still_screen_on_here_doc_input => sub {
     is(testapi::backend_get_wait_still_screen_on_here_doc_input != 42, 1, 'Sanity check, that wait_still_screen_on_here_doc_input returns not 42!');
     testapi::set_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => 42);
     is(testapi::backend_get_wait_still_screen_on_here_doc_input, 42, 'The variable `_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT` has precedence over backend value!');
@@ -1204,7 +1204,7 @@ subtest init => sub {
 
 lives_ok { force_soft_failure('boo#42') } 'can call force_soft_failure';
 
-subtest 'set_var' => sub {
+subtest set_var => sub {
     $cmds = [];
     lives_ok { set_var('FOO', 'BAR', reload_needles => 1) } 'can call set_var with reload_needles';
     is_deeply $cmds, [{cmd => 'backend_reload_needles'}], 'reload_needles called' or always_explain $cmds;
@@ -1218,7 +1218,7 @@ subtest 'get_var_array and check_var_array' => sub {
 
 throws_ok { x11_start_program 'true' } qr/implement x11_start_program/, 'x11_start_program needs specific implementation';
 
-subtest 'send_key_until_needlematch' => sub {
+subtest send_key_until_needlematch => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
 
     $mock_testapi->redefine(wait_screen_change => sub : prototype(&@) {
