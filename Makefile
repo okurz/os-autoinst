@@ -7,6 +7,8 @@ all: build/build.ninja build-rust ## Build all and create symlinks
 	ninja -C ${build} symlinks
 	ln -sf rust/os-autoinst-core/target/release/videoencoder videoencoder
 	ln -sf rust/os-autoinst-core/target/release/snd2png snd2png
+	mkdir -p debugviewer
+	ln -sf ../script/debugviewer.py debugviewer/debugviewer
 
 .PHONY: build-rust
 build-rust: ## Build Rust core

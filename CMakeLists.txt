@@ -120,7 +120,6 @@ find_package(OpenCV REQUIRED)
 include(warnings)
 
 # build and install tools/libraries in sub directories
-add_subdirectory(debugviewer)
 add_subdirectory(ppmclibs)
 add_subdirectory(doc)
 add_subdirectory(systemd)
@@ -131,9 +130,7 @@ add_subdirectory(systemd)
 get_filename_component(SRC_DIR "${CMAKE_SOURCE_DIR}" REALPATH)
 get_filename_component(BIN_DIR "${CMAKE_BINARY_DIR}" REALPATH)
 if (NOT SRC_DIR STREQUAL BIN_DIR)
-    set(OUT_OF_SOURCE_TREE_BUILD_COMMANDS
-        COMMAND ln -fs $<TARGET_FILE:debugviewer> "${CMAKE_CURRENT_SOURCE_DIR}/debugviewer/debugviewer"
-    )
+    set(OUT_OF_SOURCE_TREE_BUILD_COMMANDS "")
     foreach (PYTHON_BINDING IN LISTS PYTHON_BINDINGS)
         list(APPEND OUT_OF_SOURCE_TREE_BUILD_COMMANDS
             COMMAND ln -fs "${CMAKE_CURRENT_BINARY_DIR}/${PYTHON_BINDING}.py" "${CMAKE_CURRENT_SOURCE_DIR}/${PYTHON_BINDING}.py"
@@ -149,7 +146,7 @@ add_custom_target(
     COMMAND ln -fs $<TARGET_FILE:tinycv> "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/arch/auto/tinycv/tinycv.so"
     ${OUT_OF_SOURCE_TREE_BUILD_COMMANDS}
 )
-add_dependencies(symlinks debugviewer tinycv)
+add_dependencies(symlinks tinycv)
 
 # create installable versions of isotovideo and cv.pm
 set(OS_AUTOINST_VERSION "" CACHE STRING "os-autoinst version to set for the installation")
