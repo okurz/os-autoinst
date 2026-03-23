@@ -20,9 +20,10 @@ BEGIN {
 use OpenQA::Test::TimeLimit '90';
 
 use Test::Perl::Critic (-profile => '.perlcriticrc');
+my $env_dirs = $ENV{PERLCRITIC_DIRS};
+my @dirs = $env_dirs ? split(/[:;]/, $env_dirs) : qw(lib xt OpenQA backend consoles container script tools);
 Test::Perl::Critic::all_critic_ok(
-    grep { -e $_ }
-      qw(lib xt OpenQA backend consoles container script tools),
+    grep { -e $_ } @dirs,
     glob('*.pm'),
     grep { !/t\/(data|fake)\// } glob('t/*.t t/*.pm t/*/*.t t/*/*.pm')
 );
