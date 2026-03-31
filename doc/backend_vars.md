@@ -52,6 +52,11 @@ Supported variables per backend
 | LLM_FAILURE_ANALYSIS_URL | string | http://localhost:8080/v1/chat/completions | OpenAI-compatible API endpoint |
 | LLM_FAILURE_ANALYSIS_MODEL | string | gemma-4-26B-A4B-it | Model name sent in the API request |
 | LLM_FAILURE_ANALYSIS_CMD | string |  | If set, run this CLI command instead of the HTTP API (prompt piped via stdin). For demo/one-off use. |
+| BACKEND_FIRECRACKER_VM | boolean | 0 | If set, executes the backend process within a Firecracker MicroVM for increased isolation. Only supported for non-QEMU backends. |
+| BACKEND_FIRECRACKER_KERNEL | string |  | Path to the Linux kernel image for Firecracker. |
+| BACKEND_FIRECRACKER_ROOTFS | string |  | Path to the root filesystem image for Firecracker. |
+| BACKEND_FIRECRACKER_BIN | string | firecracker | Path to the Firecracker binary. |
+| BACKEND_FIRECRACKER_TAP | string |  | (Optional) TAP device name to bridge the MicroVM to the host network. |
 | XRES | integer | 1024 | Resolution of display on x axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID |
 | YRES | integer | 768 | Resolution of display on y axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID |
 | VIDEO_ENCODER_BLOCKING_PIPE | boolean | 0 | Whether the pipe for writing data to the video encoder should be blocking or not. Making it blocking might allow following the live view in realtime despite large screenshot file sizes but it is not a well tested configuration |
