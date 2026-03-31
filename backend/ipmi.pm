@@ -33,7 +33,11 @@ sub ipmitool ($self, $cmd, %args) {
     # the IPMI controller by a simple sleep/retry mechanism.
     my @tries = (1 .. $args{tries});
     for (@tries) {
-        $ret = IPC::Run::run(\@cmd, \$stdin, \$stdout, \$stderr);
+        if (($bmwqemu::vars{BACKEND_FIRECRACKER_VM} // 0) && ($bmwqemu::vars{BACKEND} // '') ne 'qemu') {
+            $ret = !$self->run_jailed(@cmd);
+        } else {
+            $ret = IPC::Run::run(\@cmd, \$stdin, \$stdout, \$stderr);
+        }
         if ($ret) {
             $self->dell_sleep;
             last;
