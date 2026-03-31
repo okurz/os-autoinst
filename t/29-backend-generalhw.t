@@ -49,8 +49,8 @@ my $backend = backend::generalhw->new;
 my $cmd_mock = Test::MockModule->new('backend::generalhw');
 my $fake_system_return = 0;
 $cmd_mock->redefine(_system => sub {
-        my $args = \@_;
-        push @invoked_cmds, $args;
+        my ($self, @args) = @_;
+        push @invoked_cmds, \@args;
         return $fake_system_return;
 });
 my $serial_mock = Test::MockModule->new('backend::generalhw');

@@ -49,7 +49,7 @@ sub run_cmd_retcode ($self, $cmd, @extra_args) {
     push @full_cmd, @extra_args;
 
     bmwqemu::diag("Calling $cmd");
-    my $ret = _system(@full_cmd);
+    my $ret = $self->_system(@full_cmd);
     return $ret;
 }
 
@@ -59,7 +59,7 @@ sub run_cmd ($self, $cmd, @extra_args) {
 }
 
 # wrapper to be mocked in os-autoinst unit tests as it is hard to mock system()
-sub _system (@cmd) { system @cmd }    # uncoverable statement
+sub _system ($self, @cmd) { return $self->run_jailed(\@cmd) ? 0 : 1 }    # uncoverable statement
 
 sub is_shutdown ($self, @) {
     return -1 unless defined $bmwqemu::vars{GENERAL_HW_IS_SHUTDOWN_CMD};

@@ -18,6 +18,7 @@ use Time::HiRes qw(gettimeofday time tv_interval);
 use Feature::Compat::Try;
 use POSIX qw(_exit waitpid WNOHANG);
 use IO::Select;
+use IPC::Run;
 require IPC::System::Simple;
 use myjsonrpc;
 use needle;
@@ -74,6 +75,44 @@ sub new ($class) {
     $self->{hits_limit} = $bmwqemu::vars{_CHKSEL_RATE_HITS} // 30_000;
 
     return $self;
+}
+
+sub run_jailed ($self, $cmd, @extra) {
+    if (($bmwqemu::vars{BACKEND_FIRECRACKER_VM} // 0) && ($bmwqemu::vars{BACKEND} // '') ne 'qemu') {
+        return $self->_run_firecracker($cmd, @extra);
+    }
+    return IPC::Run::run($cmd, @extra);
+}
+
+sub _run_firecracker ($self, $cmd, @extra) {
+    my $cmd_str = join ' ', map { "'$_'" } @$cmd;
+    my $kernel = $bmwqemu::vars{BACKEND_FIRECRACKER_KERNEL} || die 'Need BACKEND_FIRECRACKER_KERNEL for jailed execution';
+    my $rootfs = $bmwqemu::vars{BACKEND_FIRECRACKER_ROOTFS} || die 'Need BACKEND_FIRECRACKER_ROOTFS for jailed execution';
+    my $fc_bin = $bmwqemu::vars{BACKEND_FIRECRACKER_BIN} // 'firecracker';
+
+    my $id = "jail_$$_" . int rand 1000;
+    my $config_path = "/tmp/fc_$id.json";
+
+    my $config = {
+        'boot-source' => {
+            'kernel_image_path' => $kernel,
+            'boot_args' => "console=ttyS0 reboot=k panic=1 pci=off init=/bin/sh -- -c \"$cmd_str; reboot -f\""
+        },
+        'drives' => [{
+                'drive_id' => 'rootfs',
+                'path_on_host' => $rootfs,
+                'is_root_device' => Mojo::JSON->true,
+                'is_read_only' => Mojo::JSON->false
+        }]
+    };
+
+    path($config_path)->spew(Cpanel::JSON::XS->new->encode($config));
+    my $guard = scope_guard { unlink $config_path };
+
+    bmwqemu::diag('Running jailed command in Firecracker: ' . join ' ', @$cmd);
+    # Note: Currently only serial output is captured. Host-guest file sharing
+    # (e.g., for asset extraction) is not yet implemented for jailed execution.
+    return IPC::Run::run([$fc_bin, '--config-file', $config_path, '--no-api'], @extra);
 }
 
 sub truncate_serial_file ($self) {
