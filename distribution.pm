@@ -405,7 +405,9 @@ sub set_expected_autoinst_failures ($self, $failures) {
 sub activate_console ($self, $console) { }
 
 # override
-sub console_selected ($self, $console) { }
+sub console_selected ($self, $console) {
+    $self->{_serial_marker_hook_installed}->{$console} = 0;
+}
 
 =head2 sut_marker
 
@@ -469,6 +471,14 @@ sub _detect_serial_marker_capability ($self) {
     if (my $level = $self->{_serial_marker_level}->{$console}) {
         return $level if $level < 2 || $self->{_serial_marker_hook_installed}->{$console};
 
+        # Crosscheck if the prompt command is already setup, e.g. after a new console login
+        if ($level == 3) {
+            testapi::type_string "\n";
+            if (testapi::wait_serial(qr/OA:DONE-/, 3)) {
+                $self->{_serial_marker_hook_installed}->{$console} = 1;
+                return $level;
+            }
+        }
         $self->install_serial_marker_hook($level);
         return $level;
     }

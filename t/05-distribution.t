@@ -173,14 +173,24 @@ subtest 'reboot_safety' => sub {
     unlike $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'No re-install if still there';
     like $typed_string, qr/bar\n/, 'Command typed';
 
-    # Case 2: manual clear (e.g. if we know it was lost)
-    delete $d->{_serial_marker_hook_installed}->{'test-console'};
+    # Case 2: really missing (e.g. reboot without persistence working)
+    $d->console_selected('test-console');
+    my $first_wait = 1;
+    $mock_testapi->redefine(wait_serial => sub {
+            my ($regexp) = @_;
+            return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
+            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
+            if ($first_wait) {
+                $first_wait = 0;
+                return undef;    # Newline check fails
+            }
+            return 'OA:DONE-0-';
+    });
     $typed_string = '';
     $d->script_run('baz');
     like $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'Re-install if missing';
     like $typed_string, qr/baz\n/, 'Command typed after re-install';
 };
-
 subtest 'sut_marker' => sub {
     my $d = distribution->new;
     is $d->sut_marker('ls -la /tmp'), 'OA:ls -11/tmp', 'sut_marker for normal command';
