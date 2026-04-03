@@ -143,7 +143,7 @@ sub script_run ($self, $cmd, @args) {
         }, ['timeout'], @args);
 
     if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
+        $self->wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
     }
 
     if ($args{timeout} > 0) {
@@ -155,7 +155,7 @@ sub script_run ($self, $cmd, @args) {
         if ($level == 3) {
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
-            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet});
+            my $res = $self->wait_serial(qr/OA:DONE-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet});
             return unless $res;
             return ($res =~ /OA:DONE-(\d+)-/)[0];
         }
@@ -169,7 +169,7 @@ sub script_run ($self, $cmd, @args) {
             if (testapi::is_serial_terminal) {
                 testapi::type_string "$cmd", max_interval => $args{max_interval};
                 testapi::type_string $marker, max_interval => $args{max_interval};
-                testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $cmd) + 128)
+                $self->wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $cmd) + 128)
                   or _handle_cmd_typing_error($cmd, \%args);
                 testapi::type_string "\n", max_interval => $args{max_interval};
             }
@@ -178,7 +178,7 @@ sub script_run ($self, $cmd, @args) {
                 testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
             }
         }
-        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet});
+        my $res = $self->wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet});
         return unless $res;
         return ($res =~ $wait_pattern)[0];
     }
@@ -206,7 +206,7 @@ Use C<quiet> to avoid recording serial_results.
 
 sub background_script_run ($self, $cmd, %args) {
     if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
+        $self->wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
     }
 
     $cmd = "( $cmd )";
@@ -215,13 +215,13 @@ sub background_script_run ($self, $cmd, %args) {
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
         testapi::type_string $marker;
-        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}) or _handle_cmd_typing_error($cmd, \%args);
+        $self->wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet}) or _handle_cmd_typing_error($cmd, \%args);
         testapi::type_string "\n";
     }
     else {
         testapi::type_string "$marker > /dev/$testapi::serialdev\n";
     }
-    my $res = testapi::wait_serial(qr/$str-\d+-/, quiet => $args{quiet});
+    my $res = $self->wait_serial(qr/$str-\d+-/, quiet => $args{quiet});
     die 'PID marker not found' unless ($res =~ m/$str-(\d+)-/);
     return $1;
 }
@@ -402,11 +402,19 @@ sub set_expected_autoinst_failures ($self, $failures) {
 }
 
 # override
-sub activate_console ($self, $console) { }
+sub activate_console ($self, $console) {
+    $self->{_serial_marker_hook_installed}->{$console} = 0;
+}
 
 # override
 sub console_selected ($self, $console) {
     $self->{_serial_marker_hook_installed}->{$console} = 0;
+}
+
+sub wait_serial ($self, $regexp, %args) {
+    my $res = testapi::wait_serial($regexp, %args);
+    $self->{_serial_marker_hook_installed}->{testapi::current_console() // 'sut'} = 0 if !$res;
+    return $res;
 }
 
 =head2 sut_marker
@@ -468,16 +476,21 @@ Returns:
 
 sub _detect_serial_marker_capability ($self) {
     my $console = testapi::current_console() // 'sut';
+    bmwqemu::log_call(console => $console, level => $self->{_serial_marker_level}->{$console}, installed => $self->{_serial_marker_hook_installed}->{$console});
     if (my $level = $self->{_serial_marker_level}->{$console}) {
-        return $level if $level < 2 || $self->{_serial_marker_hook_installed}->{$console};
+        return $level if $level < 2;
 
-        # Crosscheck if the prompt command is already setup, e.g. after a new console login
+        # Crosscheck if the prompt command is already setup, e.g. after a new console login or reboot
         if ($level == 3) {
+            bmwqemu::log_call("crosschecking serial marker hook for level 3");
             testapi::type_string "\n";
             if (testapi::wait_serial(qr/OA:DONE-/, 3)) {
+                bmwqemu::log_call("serial marker hook still active");
                 $self->{_serial_marker_hook_installed}->{$console} = 1;
                 return $level;
             }
+            bmwqemu::log_call("serial marker hook lost, re-installing");
+            $self->{_serial_marker_hook_installed}->{$console} = 0;
         }
         $self->install_serial_marker_hook($level);
         return $level;
