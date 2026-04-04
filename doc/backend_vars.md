@@ -54,8 +54,10 @@ Supported variables per backend
 | LLM_FAILURE_ANALYSIS_CMD | string |  | If set, run this CLI command instead of the HTTP API (prompt piped via stdin). For demo/one-off use. |
 | BACKEND | string | qemu | Selected backend to use for test execution. |
 | BACKEND_FIRECRACKER_VM | boolean | 0 | If set, executes the backend process within a Firecracker MicroVM for increased isolation. Only supported for non-QEMU backends. |
-| BACKEND_FIRECRACKER_KERNEL | string |  | Path to the Linux kernel image for Firecracker. |
-| BACKEND_FIRECRACKER_ROOTFS | string |  | Path to the root filesystem image for Firecracker. |
+| BACKEND_FIRECRACKER_KERNEL | string |  | Path to the Linux kernel image for Firecracker (must be uncompressed ELF). |
+| BACKEND_FIRECRACKER_ROOTFS | string |  | Path to the root filesystem image for Firecracker (raw ext4 or full OS image). |
+| BACKEND_FIRECRACKER_INITRD | string |  | Optional path to an initrd for Firecracker. |
+| BACKEND_FIRECRACKER_BOOTARGS | string |  | Optional kernel boot arguments. If not set, a default minimal init script is used. |
 | BACKEND_FIRECRACKER_BIN | string | firecracker | Path to the Firecracker binary. |
 | BACKEND_FIRECRACKER_TAP | string |  | (Optional) TAP device name to bridge the MicroVM to the host network. |
 | XRES | integer | 1024 | Resolution of display on x axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID |

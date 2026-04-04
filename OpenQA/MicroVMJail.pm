@@ -9,7 +9,7 @@ use Mojo::JSON qw(encode_json);
 use bmwqemu;
 use log qw(diag fctwarn);
 
-has [qw(socket kernel rootfs binary id)];
+has [qw(socket kernel rootfs initrd binary id)];
 has [qw(pid)];
 
 sub new ($class, %args) {
@@ -19,6 +19,7 @@ sub new ($class, %args) {
     $self->binary($bmwqemu::vars{BACKEND_FIRECRACKER_BIN} // 'firecracker');
     $self->kernel($bmwqemu::vars{BACKEND_FIRECRACKER_KERNEL} || die 'Need BACKEND_FIRECRACKER_KERNEL');
     $self->rootfs($bmwqemu::vars{BACKEND_FIRECRACKER_ROOTFS} || die 'Need BACKEND_FIRECRACKER_ROOTFS');
+    $self->initrd($bmwqemu::vars{BACKEND_FIRECRACKER_INITRD});
     $self->{tap} = $bmwqemu::vars{BACKEND_FIRECRACKER_TAP};
     return $self;
 }
@@ -42,10 +43,16 @@ sub start ($self, $init_cmd) {
     die 'Firecracker API socket not found' unless -S $self->socket;
 
     # Configure VM
-    $self->_api_put('/boot-source', {
-            kernel_image_path => $self->kernel,
-            boot_args => 'console=ttyS0 reboot=k panic=1 pci=off init=/bin/sh -- -c "' . $init_cmd . '"'
-    });
+    my $boot_args = $bmwqemu::vars{BACKEND_FIRECRACKER_BOOTARGS} //
+      ('console=ttyS0 reboot=k panic=1 pci=off init=/bin/sh -- -c "' . $init_cmd . '"');
+
+    my $boot_config = {
+        kernel_image_path => $self->kernel,
+        boot_args => $boot_args
+    };
+    $boot_config->{initrd_path} = $self->initrd if $self->initrd;
+
+    $self->_api_put('/boot-source', $boot_config);
 
     $self->_api_put('/drives/rootfs', {
             drive_id => 'rootfs',

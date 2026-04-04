@@ -87,15 +87,19 @@ sub _run_firecracker ($self, $cmd, @extra) {
     my $cmd_str = join ' ', map { "'$_'" } @$cmd;
     my $kernel = $bmwqemu::vars{BACKEND_FIRECRACKER_KERNEL} || die 'Need BACKEND_FIRECRACKER_KERNEL for jailed execution';
     my $rootfs = $bmwqemu::vars{BACKEND_FIRECRACKER_ROOTFS} || die 'Need BACKEND_FIRECRACKER_ROOTFS for jailed execution';
+    my $initrd = $bmwqemu::vars{BACKEND_FIRECRACKER_INITRD};
     my $fc_bin = $bmwqemu::vars{BACKEND_FIRECRACKER_BIN} // 'firecracker';
 
     my $id = "jail_$$_" . int rand 1000;
     my $config_path = "/tmp/fc_$id.json";
 
+    my $boot_args = $bmwqemu::vars{BACKEND_FIRECRACKER_BOOTARGS} //
+      "console=ttyS0 reboot=k panic=1 pci=off init=/bin/sh -- -c \"$cmd_str; reboot -f\"";
+
     my $config = {
         'boot-source' => {
             'kernel_image_path' => $kernel,
-            'boot_args' => "console=ttyS0 reboot=k panic=1 pci=off init=/bin/sh -- -c \"$cmd_str; reboot -f\""
+            'boot_args' => $boot_args
         },
         'drives' => [{
                 'drive_id' => 'rootfs',
@@ -104,6 +108,7 @@ sub _run_firecracker ($self, $cmd, @extra) {
                 'is_read_only' => Mojo::JSON->false
         }]
     };
+    $config->{'boot-source'}->{initrd_path} = $initrd if $initrd;
 
     path($config_path)->spew(Cpanel::JSON::XS->new->encode($config));
     my $guard = scope_guard { unlink $config_path };
