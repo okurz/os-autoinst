@@ -9,7 +9,7 @@ use Mojo::JSON qw(encode_json);
 use bmwqemu;
 use log qw(diag fctwarn);
 
-has [qw(socket kernel rootfs initrd binary id)];
+has [qw(socket kernel rootfs initrd binary id drives vsock)];
 has [qw(pid)];
 
 sub new ($class, %args) {
@@ -20,6 +20,8 @@ sub new ($class, %args) {
     $self->kernel($bmwqemu::vars{BACKEND_FIRECRACKER_KERNEL} || die 'Need BACKEND_FIRECRACKER_KERNEL');
     $self->rootfs($bmwqemu::vars{BACKEND_FIRECRACKER_ROOTFS} || die 'Need BACKEND_FIRECRACKER_ROOTFS');
     $self->initrd($bmwqemu::vars{BACKEND_FIRECRACKER_INITRD});
+    $self->drives($args{drives} // []);
+    $self->vsock($args{vsock});
     $self->{tap} = $bmwqemu::vars{BACKEND_FIRECRACKER_TAP};
     return $self;
 }
@@ -44,7 +46,7 @@ sub start ($self, $init_cmd) {
 
     # Configure VM
     my $boot_args = $bmwqemu::vars{BACKEND_FIRECRACKER_BOOTARGS} //
-      ('console=ttyS0 reboot=k panic=1 pci=off init=/bin/sh -- -c "' . $init_cmd . '"');
+      ('console=ttyS0 reboot=k panic=1 pci=off init=/bin/sh -- -c "' . $init_cmd . '; reboot -f"');
 
     my $boot_config = {
         kernel_image_path => $self->kernel,
@@ -60,6 +62,23 @@ sub start ($self, $init_cmd) {
             is_root_device => Mojo::JSON->true,
             is_read_only => Mojo::JSON->false
     });
+
+    for my $drive (@{$self->drives}) {
+        $self->_api_put('/drives/' . $drive->{id}, {
+                drive_id => $drive->{id},
+                path_on_host => $drive->{path},
+                is_root_device => Mojo::JSON->false,
+                is_read_only => $drive->{read_only} // Mojo::JSON->true
+        });
+    }
+
+    if ($self->vsock) {
+        $self->_api_put('/vsock', {
+                vsock_id => 'vsock0',
+                guest_cid => $self->vsock->{cid},
+                uds_path => $self->vsock->{socket}
+        });
+    }
 
     if ($self->{tap}) {
         $self->_api_put('/network-interfaces/eth0', {
@@ -93,6 +112,13 @@ sub _api_put ($self, $path, $data) {
     if ($? != 0) {
         fctwarn "Firecracker API PUT $path failed: $output";
     }
+}
+
+sub create_data_squashfs ($self, $path, @dirs) {
+    my @cmd = ('mksquashfs', @dirs, $path, '-noappend', '-all-root');
+    diag("Building Squashfs data image: " . join ' ', @cmd);
+    system(@cmd) == 0 or die "mksquashfs failed: $!";
+    return $path;
 }
 
 1;
