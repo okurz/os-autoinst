@@ -10,6 +10,8 @@ use bmwqemu;
 use Exporter 'import';
 use Feature::Compat::Try;
 use File::Basename;
+use File::Path qw(mkpath);
+use File::Temp qw(tempdir);
 use Socket;
 use IO::Handle;
 use POSIX '_exit';
@@ -455,7 +457,13 @@ sub handle_sigterm ($sig) {    # uncoverable statement
     _exit(1);    # uncoverable statement
 }
 
+use OpenQA::MicroVMJail;
+use Mojo::Util 'scope_guard';
+
 sub start_process () {
+    if ($bmwqemu::vars{AUTOTEST_FIRECRACKER_VM}) {
+        return _start_jailed_process();
+    }
     my $child;
     socketpair $child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC
       or die "socketpair: $!";
@@ -496,6 +504,94 @@ sub start_process () {
 
     close $isotovideo;
     return ($process, $child);
+}
+
+sub _start_jailed_process () {
+    my $id = "autotest_$$";
+    my $vsock_socket = "/tmp/autotest_vsock_$$.socket";
+    unlink $vsock_socket;
+
+    my $squashfs_path = "/tmp/autotest_data_$$.squashfs";
+    my $jail = OpenQA::MicroVMJail->new(
+        id => $id,
+        vsock => {
+            cid => 3,
+            socket => $vsock_socket
+        }
+    );
+
+    my $topdir = $bmwqemu::topdir;
+    # Create a temporary directory to build the Squashfs structure
+    my $build_dir = tempdir(CLEANUP => 1);
+    system("cp -a $topdir/lib $build_dir/");
+    mkdir "$build_dir/bin";
+    system("cp $topdir/bin/autotest-jail-init $build_dir/bin/");
+    system("cp $topdir/*.pm $build_dir/");
+    system("cp vars.json $build_dir/") if -e 'vars.json';
+    system("cp -a needles $build_dir/") if -d 'needles';
+
+    if ($bmwqemu::vars{CASEDIR}) {
+        my $casedir = $bmwqemu::vars{CASEDIR};
+        mkpath(dirname("$build_dir/$casedir"));
+        system("cp -a $casedir $build_dir/$casedir/../");
+    }
+    if ($bmwqemu::vars{PRODUCTDIR} && $bmwqemu::vars{PRODUCTDIR} ne ($bmwqemu::vars{CASEDIR} // '')) {
+        my $productdir = $bmwqemu::vars{PRODUCTDIR};
+        mkpath(dirname("$build_dir/$productdir"));
+        system("cp -a $productdir $build_dir/$productdir/../");
+    }
+
+    $jail->create_data_squashfs($squashfs_path, $build_dir);
+
+    $jail->drives([{
+                id => 'data',
+                path => $squashfs_path,
+                read_only => Mojo::JSON->true
+    }]);
+
+    # Command to run inside the guest
+    my $init_cmd = "/mnt/os-autoinst/bin/autotest-jail-init";
+
+    # We need to wait for the vsock connection from the guest.
+    # The jail start will happen in a separate process/thread?
+    # Actually, start_process returns ($process, $child).
+    # $process should be the jail process.
+    # $child (isotovideo side) should be the socket that will eventually connect.
+
+    # We can use a small wrapper process that starts the jail and then waits for the vsock.
+    my $child_sk;
+    socket(my $server_sk, AF_UNIX, SOCK_STREAM, 0) or die "socket: $!";
+    bind($server_sk, pack_sockaddr_un($vsock_socket)) or die "bind: $!";
+    listen($server_sk, 1) or die "listen: $!";
+
+    $process = process(sub {
+            # This is the "jail controller" process
+            $0 = "$0: autotest-jail-controller";
+            $jail->start($init_cmd);
+            # Keep running as long as the jail is alive
+            waitpid($jail->pid, 0);
+            unlink $vsock_socket, $squashfs_path;
+        },
+        blocking_stop => 1,
+        separate_err => 0)->start;
+
+    # Now we need to accept the connection from Firecracker (which is guest CID 3)
+    # But wait, Firecracker connects to the UDS when the guest connects to the vsock port.
+    # So we should accept() on the UDS.
+
+    # We'll use a timeout to wait for the guest to connect.
+    my $rin = '';
+    vec($rin, fileno($server_sk), 1) = 1;
+    if (select($rin, undef, undef, 10)) {
+        accept($isotovideo, $server_sk) or die "accept: $!";
+    } else {
+        die "Timed out waiting for guest autotest process to connect via vsock";
+    }
+
+    $isotovideo->autoflush(1);
+    close $server_sk;
+
+    return ($process, $isotovideo);
 }
 
 sub query_isotovideo ($cmd, $args = undef) {

@@ -60,6 +60,7 @@ Supported variables per backend
 | BACKEND_FIRECRACKER_BOOTARGS | string |  | Optional kernel boot arguments. If not set, a default minimal init script is used. |
 | BACKEND_FIRECRACKER_BIN | string | firecracker | Path to the Firecracker binary. |
 | BACKEND_FIRECRACKER_TAP | string |  | (Optional) TAP device name to bridge the MicroVM to the host network. |
+| AUTOTEST_FIRECRACKER_VM | boolean | 0 | If set, executes the `autotest` process (the test code itself) within a Firecracker MicroVM for maximum isolation from the worker host. |
 | XRES | integer | 1024 | Resolution of display on x axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID |
 | YRES | integer | 768 | Resolution of display on y axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID |
 | VIDEO_ENCODER_BLOCKING_PIPE | boolean | 0 | Whether the pipe for writing data to the video encoder should be blocking or not. Making it blocking might allow following the live view in realtime despite large screenshot file sizes but it is not a well tested configuration |
