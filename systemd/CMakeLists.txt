@@ -6,9 +6,19 @@ configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/os-autoinst-openvswitch.service.in"
     "${CMAKE_CURRENT_BINARY_DIR}/os-autoinst-openvswitch.service"
 )
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/os-autoinst-firecracker-tap@.service.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/os-autoinst-firecracker-tap@.service"
+)
 install(
     FILES "${CMAKE_CURRENT_BINARY_DIR}/os-autoinst-openvswitch.service"
     DESTINATION "${SYSTEMD_SERVICE_DIR}"
     COMPONENT "openvswitch"
+    EXCLUDE_FROM_ALL
+)
+install(
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/os-autoinst-firecracker-tap@.service"
+    DESTINATION "${SYSTEMD_SERVICE_DIR}"
+    COMPONENT "firecracker"
     EXCLUDE_FROM_ALL
 )
