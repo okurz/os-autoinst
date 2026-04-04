@@ -52,6 +52,7 @@ Supported variables per backend
 | LLM_FAILURE_ANALYSIS_URL | string | http://localhost:8080/v1/chat/completions | OpenAI-compatible API endpoint |
 | LLM_FAILURE_ANALYSIS_MODEL | string | gemma-4-26B-A4B-it | Model name sent in the API request |
 | LLM_FAILURE_ANALYSIS_CMD | string |  | If set, run this CLI command instead of the HTTP API (prompt piped via stdin). For demo/one-off use. |
+| BACKEND | string | qemu | Selected backend to use for test execution. |
 | BACKEND_FIRECRACKER_VM | boolean | 0 | If set, executes the backend process within a Firecracker MicroVM for increased isolation. Only supported for non-QEMU backends. |
 | BACKEND_FIRECRACKER_KERNEL | string |  | Path to the Linux kernel image for Firecracker. |
 | BACKEND_FIRECRACKER_ROOTFS | string |  | Path to the root filesystem image for Firecracker. |

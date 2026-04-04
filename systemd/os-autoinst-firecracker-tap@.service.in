@@ -1,0 +1,16 @@
+# unit description file for os-autoinst firecracker tap helper
+# start using e.g.
+# systemctl start os-autoinst-firecracker-tap@tap0.service
+[Unit]
+Description=Firecracker TAP interface %I
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=@pkglibexecdir@/tools/setup_firecracker_tap.sh %I
+ExecStop=ip link delete %I
+StandardOutput=journal
+
+[Install]
+WantedBy=multi-user.target
