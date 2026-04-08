@@ -1,6 +1,6 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
-FROM registry.opensuse.org/opensuse/bci/bci-minimal:latest
+FROM registry.opensuse.org/opensuse/bci/bci-base:latest
 
 # Install necessary tools for backend execution (ipmitool, ssh, etc.)
 RUN zypper -n install ipmitool openssh-clients curl wget iproute2 tar && \

@@ -8,7 +8,10 @@ set -e
 
 IMG_SIZE=${IMG_SIZE:-512M}
 ROOTFS_IMG=${ROOTFS_IMG:-rootfs.ext4}
-DOCKER_CONTEXT="$(dirname "$0")/../container/firecracker_rootfs"
+DOCKER_CONTEXT=${DOCKER_CONTEXT:-$(dirname "$0")/../container/firecracker_rootfs}
+IMAGE_NAME=${IMAGE_NAME:-os-autoinst-firecracker-rootfs}
+
+export PATH=$PATH:/usr/sbin:/sbin
 
 if ! command -v podman &> /dev/null; then
     echo "Error: podman is required."
@@ -23,7 +26,7 @@ fi
 echo "Building Firecracker rootfs image: $ROOTFS_IMG from $DOCKER_CONTEXT"
 
 # Build the container image
-podman build -t os-autoinst-firecracker-rootfs "$DOCKER_CONTEXT"
+podman build -t "$IMAGE_NAME" "$DOCKER_CONTEXT"
 
 # Export the container filesystem to a raw ext4 image
 echo "Creating ext4 image file..."
@@ -33,27 +36,27 @@ mkfs.ext4 -F "$ROOTFS_IMG"
 # Populate the image
 echo "Populating image..."
 TEMP_CONTAINER="fc-export-$$"
-podman create --name $TEMP_CONTAINER os-autoinst-firecracker-rootfs
-mkdir -p mnt
+podman create --name "$TEMP_CONTAINER" "$IMAGE_NAME"
 
-# Note: Loop mounting usually requires root privileges.
-# In a CI environment (e.g., GitHub Actions or OBS), this is typically available.
-# Alternatively, tools like 'guestfish' or 'genext2fs' can be used for unprivileged image creation.
 if [ "$(id -u)" -eq 0 ]; then
+    mkdir -p mnt
     mount -o loop "$ROOTFS_IMG" mnt
     podman export "$TEMP_CONTAINER" | tar -xf - -C mnt
     umount mnt
+    rmdir mnt
+elif command -v guestfish &> /dev/null; then
+    echo "Using guestfish to populate image..."
+    podman export "$TEMP_CONTAINER" > container_export.tar
+    guestfish -a "$ROOTFS_IMG" -m /dev/sda << EOF
+tar-in container_export.tar /
+EOF
+    rm container_export.tar
 else
-    echo "Warning: Not running as root. Attempting 'podman unshare' (might fail if loop-mount is restricted)..."
-    podman unshare bash -c "
-      mount -o loop $ROOTFS_IMG mnt || (echo 'Loop mount failed. Please run as root or use guestfish.'; exit 1)
-      podman export $TEMP_CONTAINER | tar -xf - -C mnt
-      umount mnt
-    "
+    echo "Error: Root privileges or guestfish required to populate image."
+    podman rm -f "$TEMP_CONTAINER"
+    exit 1
 fi
 
-# Clean up
-rm -rf mnt
-podman rm -f $TEMP_CONTAINER
+podman rm -f "$TEMP_CONTAINER"
 
 echo "Successfully built $ROOTFS_IMG"

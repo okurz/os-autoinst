@@ -49,6 +49,12 @@ sub run ($self) {
     $io_select->add($ch->cmd_srv_fd);
     $io_select->add($ch->backend_out_fd);
 
+    for my $fd ($self->testfd, $ch->cmd_srv_fd, $ch->backend_out_fd) {
+        if (defined $fd) {
+            diag(sprintf("Handle %s fileno: %d", $fd, fileno($fd)));
+        }
+    }
+
     while ($self->loop) {
         my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $ch->timeout);
         for my $readable (@$ready_for_read) {
@@ -77,6 +83,8 @@ sub prepare ($self) {
     $self->_flush_std;
     $self->checkout_code;
     $self->load_schedule;
+    # Start autotest before server to avoid fileno conflicts
+    $self->start_autotest();
     $self->start_server;
     testapi::init();
     needle::init();
@@ -101,6 +109,7 @@ sub start_server ($self) {
 }
 
 sub start_autotest ($self) {
+    return if defined $self->testprocess; # Avoid double start
     my ($testprocess, $testfd) = autotest::start_process();
     $self->testprocess($testprocess);
     $self->testfd($testfd);
@@ -250,7 +259,6 @@ sub _init_bmwqemu ($, @args) {
 sub init ($self, @args) {
     $self->_init_bmwqemu(@args);
     $self->prepare;
-    $self->start_autotest;
     $self->create_backend;
 }
 

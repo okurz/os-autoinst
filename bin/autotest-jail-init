@@ -4,55 +4,96 @@
 use strict;
 use warnings;
 use IO::Socket;
+use Mojo::File qw(path);
 
 # This script runs inside the MicroVM jail for autotest confinement.
 # It connects to the host via vsock and runs the autotest logic.
 
-# 1. Mount the data disk (Squashfs)
-# We assume it is attached as /dev/vdb
-system("mkdir -p /mnt/os-autoinst");
-system("mount -o ro -t squashfs /dev/vdb /mnt/os-autoinst");
+# 1. Setup console
+open my $console, '>', '/dev/ttyS0' or warn "Can't open /dev/ttyS0: $!";
+if ($console) {
+    open STDOUT, '>&', $console or warn "Can't redirect STDOUT: $!";
+    open STDERR, '>&', $console or warn "Can't redirect STDERR: $!";
+}
+$| = 1;
 
-chdir("/mnt/os-autoinst");
+print "autotest-jail-init starting...\n";
+system("ls -R /mnt/os-autoinst");
 
-# 2. Setup @INC and environment
-unshift @INC, '/mnt/os-autoinst/lib';
+# 2. Verification
+die "/mnt/os-autoinst/autotest.pm not found" unless -f "/mnt/os-autoinst/autotest.pm";
+
+# 2. Make environment writable
+system("mkdir -p /tmp/workdir");
+chdir("/tmp/workdir") or die "chdir /tmp/workdir failed: $!";
+
+# Create standard directories
+for my $dir (qw(testresults ulogs qemuscreenshot)) {
+    if (!-d $dir) {
+        mkdir $dir or warn "mkdir $dir failed: $!";
+    }
+}
+
+# Copy vars.json if available
+if (-f "/mnt/os-autoinst/vars.json") {
+    system("cp /mnt/os-autoinst/vars.json vars.json");
+}
+
+# 3. Setup @INC and environment
 unshift @INC, '/mnt/os-autoinst';
 
-# Update CASEDIR and PRODUCTDIR if they are set
-if ($ENV{CASEDIR} && $ENV{CASEDIR} !~ /^\//) {
-    $ENV{CASEDIR} = "/mnt/os-autoinst/" . $ENV{CASEDIR};
-}
-if ($ENV{PRODUCTDIR} && $ENV{PRODUCTDIR} !~ /^\//) {
-    $ENV{PRODUCTDIR} = "/mnt/os-autoinst/" . $ENV{PRODUCTDIR};
-}
+$ENV{CASEDIR} = "/mnt/os-autoinst/distri";
+$ENV{PRODUCTDIR} = "/mnt/os-autoinst/distri";
+$ENV{OPENQA_LIBPATH} = "/mnt/os-autoinst/lib";
 
-# 3. Load autotest and other required modules
+# 4. Load autotest and other required modules
 require bmwqemu;
+bmwqemu::load_vars(); # Load vars from vars.json in workdir
+# Overwrite CASEDIR/PRODUCTDIR in vars too
+$bmwqemu::vars{CASEDIR} = "/mnt/os-autoinst/distri";
+$bmwqemu::vars{PRODUCTDIR} = "/mnt/os-autoinst/distri";
+
+require "log.pm";
+$log::direct_output = 1; # Force output to STDERR
+
+require Carp::Always;
+
 require myjsonrpc;
 require autotest;
+require Mojo::JSON;
 
-# 4. Connect to host via vsock
+# 5. Load test schedule
+if (-f "/mnt/os-autoinst/test_schedule.json") {
+    print "autotest-jail-init: Loading test schedule...\n";
+    my $data = Mojo::JSON::decode_json(path("/mnt/os-autoinst/test_schedule.json")->slurp);
+    for my $t (@$data) {
+        print "autotest-jail-init: Loading test $t->{script} ($t->{name})...\n";
+        autotest::loadtest($t->{script}, name => $t->{name});
+    }
+    print "autotest-jail-init: Total tests loaded: " . scalar(@autotest::testorder) . "\n";
+} else {
+    warn "autotest-jail-init: test_schedule.json not found!\n";
+}
+
+# 6. Connect to host via vsock (Host-initiated)
 # Firecracker vsock uses AF_VSOCK (40 on Linux)
-# We need a socket handle that autotest can use.
-my $vsock_port = $ENV{AUTOTEST_VSOCK_PORT} || 1234;
-
-# Since standard Perl Socket might not have AF_VSOCK, we use a raw socket
-# or just assume we have it if we use a modern Perl.
-# AF_VSOCK is 40.
-# struct sockaddr_vm {
-#    unsigned short svm_family;
-#    unsigned short svm_reserved1;
-#    unsigned int svm_port;
-#    unsigned int svm_cid;
-# };
+my $vsock_port = $ENV{AUTOTEST_VSOCK_PORT} || 12345;
 my $AF_VSOCK = 40;
-my $VMADDR_CID_HOST = 2;
-my $sockaddr_vm = pack("SSII", $AF_VSOCK, 0, $vsock_port, $VMADDR_CID_HOST);
+my $VMADDR_CID_ANY = -1; # -1U or 0xFFFFFFFF
+# struct sockaddr_vm { short family; short reserved; int port; int cid; char zero[4]; }
+my $sockaddr_vm = pack("SSIIx4", $AF_VSOCK, 0, $vsock_port, $VMADDR_CID_ANY);
 
-socket(my $sk, $AF_VSOCK, SOCK_STREAM, 0) or die "socket AF_VSOCK failed: $!";
-connect($sk, $sockaddr_vm) or die "connect AF_VSOCK failed: $!";
+print "autotest-jail-init: Listening on vsock Port $vsock_port...\n";
+socket(my $lsn, $AF_VSOCK, SOCK_STREAM, 0) or die "socket AF_VSOCK failed: $!";
+bind($lsn, $sockaddr_vm) or die "bind AF_VSOCK failed: $!";
+listen($lsn, 1) or die "listen AF_VSOCK failed: $!";
+
+print "autotest-jail-init: Waiting for connection from host...\n";
+my $sk;
+accept($sk, $lsn) or die "accept AF_VSOCK failed: $!";
+print "autotest-jail-init: Connected to host.\n";
 $sk->autoflush(1);
+close($lsn);
 
 # 5. Tell autotest to use this socket to talk to isotovideo
 $autotest::isotovideo = $sk;

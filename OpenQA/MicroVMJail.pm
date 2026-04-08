@@ -6,6 +6,7 @@ use Mojo::Base -base, -signatures;
 use Mojo::File qw(path);
 use Mojo::Util 'scope_guard';
 use Mojo::JSON qw(encode_json);
+use IPC::Run;
 use bmwqemu;
 use log qw(diag fctwarn);
 
@@ -32,6 +33,9 @@ sub start ($self, $init_cmd) {
     my $pid = fork;
     if ($pid == 0) {
         # Child: run firecracker
+        my $log = "/tmp/firecracker_" . $self->id . ".log";
+        open STDOUT, '>', $log or die "Can't redirect STDOUT to $log: $!";
+        open STDERR, '>&STDOUT' or die "Can't redirect STDERR: $!";
         exec $self->binary, '--api-sock', $self->socket;
         die 'exec firecracker failed: ' . $!;
     }
@@ -45,8 +49,8 @@ sub start ($self, $init_cmd) {
     die 'Firecracker API socket not found' unless -S $self->socket;
 
     # Configure VM
-    my $boot_args = $bmwqemu::vars{BACKEND_FIRECRACKER_BOOTARGS} //
-      ('console=ttyS0 reboot=k panic=1 pci=off init=/bin/sh -- -c "' . $init_cmd . '; reboot -f"');
+    my $boot_args = $bmwqemu::vars{BACKEND_FIRECRACKER_BOOTARGS} // 'console=ttyS0 reboot=k panic=1 pci=off';
+    $boot_args .= ' init=/bin/sh -- -c "mkdir -p /mnt/os-autoinst && mount -v -o ro -t squashfs /dev/vdb /mnt/os-autoinst || ls -l /dev/vd*; /mnt/os-autoinst/bin/autotest-jail-init; reboot -f"';
 
     my $boot_config = {
         kernel_image_path => $self->kernel,
@@ -74,7 +78,6 @@ sub start ($self, $init_cmd) {
 
     if ($self->vsock) {
         $self->_api_put('/vsock', {
-                vsock_id => 'vsock0',
                 guest_cid => $self->vsock->{cid},
                 uds_path => $self->vsock->{socket}
         });
@@ -86,6 +89,11 @@ sub start ($self, $init_cmd) {
                 host_dev_name => $self->{tap}
         });
     }
+
+    $self->_api_put('/machine-config', {
+            vcpu_count => 1,
+            mem_size_mib => 512
+    });
 
     $self->_api_put('/actions', {
             action_type => 'InstanceStart'
@@ -106,11 +114,12 @@ sub stop ($self) {
 sub _api_put ($self, $path, $data) {
     my $json = encode_json($data);
     my $socket = $self->socket;
-    my $cmd = "curl -s -X PUT --unix-socket $socket http://localhost$path " .
-      "-H 'Accept: application/json' -H 'Content-Type: application/json' -d '$json'";
-    my $output = qx($cmd);
-    if ($? != 0) {
-        fctwarn "Firecracker API PUT $path failed: $output";
+    my @cmd = ('curl', '-s', '-X', 'PUT', '--unix-socket', $socket, "http://localhost$path",
+      '-H', 'Accept: application/json', '-H', 'Content-Type: application/json', '-d', $json);
+    my ($stdout, $stderr);
+    my $ret = IPC::Run::run(\@cmd, '>', \$stdout, '2>', \$stderr);
+    if (!$ret) {
+        fctwarn "Firecracker API PUT $path failed: $stderr";
     }
 }
 

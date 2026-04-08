@@ -20,6 +20,7 @@ use cv;
 use signalblocker;
 use Scalar::Util 'blessed';
 use List::Util 'any';
+use Mojo::JSON qw(encode_json);
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use Mojo::File qw(path);
@@ -28,7 +29,6 @@ use File::Glob qw(bsd_glob);
 use constant FAIL_ON_ALWAYS_ROLLBACK_NOT_SUPPORTED => 1;
 
 our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo);
-
 # scheduled or run tests
 our %tests;    ## no critic (Variables::ProhibitPackageVars)
 # for keeping them in order
@@ -280,11 +280,17 @@ check C<vars{BIGTEST}> or C<vars{LIVETEST}>.
 sub _should_schedule ($test) {
     if ($bmwqemu::vars{EXCLUDE_MODULES}) {
         my %excluded = map { $_ => 1 } split /\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES};
-        return 0 if $excluded{$test->{class}} || $excluded{$test->{fullname}};
+        if ($excluded{$test->{class}} || $excluded{$test->{fullname}}) {
+            bmwqemu::diag("autotest::_should_schedule: $test->{fullname} excluded");
+            return 0;
+        }
     }
     if ($bmwqemu::vars{INCLUDE_MODULES}) {
         my %included = map { $_ => 1 } split /\s*,\s*/, $bmwqemu::vars{INCLUDE_MODULES};
-        return 0 unless $included{$test->{class}} || $included{$test->{fullname}};
+        unless ($included{$test->{class}} || $included{$test->{fullname}}) {
+            bmwqemu::diag("autotest::_should_schedule: $test->{fullname} not in INCLUDE_MODULES ($bmwqemu::vars{INCLUDE_MODULES})");
+            return 0;
+        }
     }
     if (my $exit_after = $bmwqemu::vars{EXIT_AFTER_MODULE}) {
         return 0 if any { $_->{class} eq $exit_after || $_->{fullname} eq $exit_after } @testorder;
@@ -293,8 +299,8 @@ sub _should_schedule ($test) {
 }
 
 sub loadtest ($script, %args) {
-    no utf8;    # Inline Python fails on utf8, so let's exclude it here
     my $script_path = find_script($script);
+
     my ($name, $category) = parse_test_path($script_path);
 
     my $abs_path = path($script_path)->to_abs->to_string;
@@ -352,8 +358,9 @@ sub loadtest ($script, %args) {
 
     return unless _should_schedule($test);
     push @testorder, $test;
-
+ 
     # Test schedule may change at runtime. Update test_order.json to notify
+
     # the OpenQA server of the change.
     write_test_order() if $tests_running;
     bmwqemu::diag("scheduling $test->{name} $script");
@@ -461,7 +468,7 @@ use OpenQA::MicroVMJail;
 use Mojo::Util 'scope_guard';
 
 sub start_process () {
-    if ($bmwqemu::vars{AUTOTEST_FIRECRACKER_VM}) {
+    if ($bmwqemu::vars{AUTOTEST_FIRECRACKER_VM} || $ENV{AUTOTEST_FIRECRACKER_VM}) {
         return _start_jailed_process();
     }
     my $child;
@@ -507,6 +514,7 @@ sub start_process () {
 }
 
 sub _start_jailed_process () {
+    bmwqemu::diag("Starting jailed autotest process...");
     my $id = "autotest_$$";
     my $vsock_socket = "/tmp/autotest_vsock_$$.socket";
     unlink $vsock_socket;
@@ -520,26 +528,37 @@ sub _start_jailed_process () {
         }
     );
 
-    my $topdir = $bmwqemu::topdir;
     # Create a temporary directory to build the Squashfs structure
+    my $topdir = $bmwqemu::topdir;
     my $build_dir = tempdir(CLEANUP => 1);
-    system("cp -a $topdir/lib $build_dir/");
+    
+    # Copy project files
+    for my $item (glob("$topdir/*.pm"), "$topdir/OpenQA", "$topdir/backend", "$topdir/consoles", "$topdir/osutils.pm") {
+        system("cp -a $item $build_dir/") if -e $item;
+    }
     mkdir "$build_dir/bin";
     system("cp $topdir/bin/autotest-jail-init $build_dir/bin/");
-    system("cp $topdir/*.pm $build_dir/");
     system("cp vars.json $build_dir/") if -e 'vars.json';
     system("cp -a needles $build_dir/") if -d 'needles';
-
+    
+    # Copy distribution code
+    my $jail_distri_path = "distri";
     if ($bmwqemu::vars{CASEDIR}) {
         my $casedir = $bmwqemu::vars{CASEDIR};
-        mkpath(dirname("$build_dir/$casedir"));
-        system("cp -a $casedir $build_dir/$casedir/../");
+        mkdir "$build_dir/$jail_distri_path";
+        system("cp -a $casedir/* $build_dir/$jail_distri_path/");
     }
-    if ($bmwqemu::vars{PRODUCTDIR} && $bmwqemu::vars{PRODUCTDIR} ne ($bmwqemu::vars{CASEDIR} // '')) {
-        my $productdir = $bmwqemu::vars{PRODUCTDIR};
-        mkpath(dirname("$build_dir/$productdir"));
-        system("cp -a $productdir $build_dir/$productdir/../");
+
+    # Serialize test schedule for the guest
+    my @schedule = map { { script => $_->{script}, name => $_->{name} } } @testorder;
+    if (@schedule) {
+        bmwqemu::diag("Serializing " . scalar(@schedule) . " tests for jail...");
+        path("$build_dir/test_schedule.json")->spew(encode_json(\@schedule));
+    } else {
+        bmwqemu::diag("Warning: No tests to serialize for jail!");
     }
+
+    $jail->create_data_squashfs($squashfs_path, $build_dir);
 
     $jail->create_data_squashfs($squashfs_path, $build_dir);
 
@@ -558,38 +577,93 @@ sub _start_jailed_process () {
     # $process should be the jail process.
     # $child (isotovideo side) should be the socket that will eventually connect.
 
-    # We can use a small wrapper process that starts the jail and then waits for the vsock.
-    my $child_sk;
-    socket(my $server_sk, AF_UNIX, SOCK_STREAM, 0) or die "socket: $!";
-    bind($server_sk, pack_sockaddr_un($vsock_socket)) or die "bind: $!";
-    listen($server_sk, 1) or die "listen: $!";
-
+    my $vsock_port = $bmwqemu::vars{AUTOTEST_VSOCK_PORT} || 12345;
+    my $proxy_socket = "/tmp/autotest_proxy_$$.socket";
+    unlink $proxy_socket;
+    
     $process = process(sub {
-            # This is the "jail controller" process
-            $0 = "$0: autotest-jail-controller";
+            $0 = "$0: autotest-jail-proxy";
+            # 1. Start jail
             $jail->start($init_cmd);
-            # Keep running as long as the jail is alive
-            waitpid($jail->pid, 0);
-            unlink $vsock_socket, $squashfs_path;
+            
+            # 2. Listen for isotovideo
+            my $lsn = IO::Socket::UNIX->new(Local => $proxy_socket, Listen => 1) or die "proxy listen: $!";
+            my $iso_sk = $lsn->accept() or die "proxy accept: $!";
+            close $lsn;
+            
+            # 3. Connect to Firecracker and handshake
+            my $fc_sk;
+            my $handshake_ok = 0;
+            my $retries = 60;
+            while ($retries-- > 0 && !$handshake_ok) {
+                $fc_sk = IO::Socket::UNIX->new(Peer => $vsock_socket);
+                if ($fc_sk) {
+                    syswrite($fc_sk, "CONNECT $vsock_port\n");
+                    my $response = '';
+                    while (sysread($fc_sk, my $buf, 1024)) {
+                        $response .= $buf;
+                        last if $response =~ /\n/;
+                    }
+                    if ($response =~ /^OK/) {
+                        $handshake_ok = 1;
+                    } else {
+                        close $fc_sk;
+                    }
+                }
+                select undef, undef, undef, 1.0 unless $handshake_ok;
+            }
+            if (!$handshake_ok) {
+                exit 1;
+            }
+            
+            # 4. Bidirectional forward with logging to a file
+            open my $proxy_log, '>', "/tmp/proxy_$$.log";
+            $proxy_log->autoflush(1);
+            my $ts = sub { my ($sec,$min,$hour) = localtime(); return sprintf("[%02d:%02d:%02d] ", $hour, $min, $sec); };
+            print $proxy_log $ts->() . "Proxy started. handshaked.\n";
+            
+            my $sel = IO::Select->new($iso_sk, $fc_sk);
+            while (my @ready = $sel->can_read) {
+                for my $h (@ready) {
+                    my $other = ($h == $iso_sk) ? $fc_sk : $iso_sk;
+                    my $name = ($h == $iso_sk) ? "host" : "guest";
+                    my $other_name = ($h == $iso_sk) ? "guest" : "host";
+                    
+                    my $buffer;
+                    my $n = sysread($h, $buffer, 16384);
+                    if (defined $n && $n > 0) {
+                        print $proxy_log $ts->() . "Forwarding $n bytes $name -> $other_name\n";
+                        my $written = syswrite($other, $buffer);
+                        if (!defined $written) {
+                            print $proxy_log $ts->() . "Error writing to $other_name: $!\n";
+                            exit 1;
+                        }
+                    } else {
+                        print $proxy_log $ts->() . "EOF from $name\n";
+                        exit 0;
+                    }
+                }
+            }
         },
         blocking_stop => 1,
+
         separate_err => 0)->start;
 
-    # Now we need to accept the connection from Firecracker (which is guest CID 3)
-    # But wait, Firecracker connects to the UDS when the guest connects to the vsock port.
-    # So we should accept() on the UDS.
 
-    # We'll use a timeout to wait for the guest to connect.
-    my $rin = '';
-    vec($rin, fileno($server_sk), 1) = 1;
-    if (select($rin, undef, undef, 10)) {
-        accept($isotovideo, $server_sk) or die "accept: $!";
-    } else {
-        die "Timed out waiting for guest autotest process to connect via vsock";
+    # Wait for proxy to be ready
+    my $retries = 100;
+    while (!-S $proxy_socket && $retries-- > 0) {
+        select undef, undef, undef, 0.1;
     }
-
+    die "Proxy failed to start" unless -S $proxy_socket;
+    
+    # Connect isotovideo to the proxy
+    $isotovideo = IO::Socket::UNIX->new(Peer => $proxy_socket, Blocking => 1);
+    die "connect to proxy failed: $!" unless $isotovideo;
     $isotovideo->autoflush(1);
-    close $server_sk;
+
+    # Cleanup handshake script later
+    # scope_guard { unlink $handshake_script };
 
     return ($process, $isotovideo);
 }

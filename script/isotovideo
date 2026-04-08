@@ -97,13 +97,14 @@ use JSON::PP;
 
 use FindBin '$RealBin';
 
+use Mojo::File qw(curfile path);
 my $installprefix;    # $bmwqemu::topdir
 
 BEGIN {
     # the following line is modified during make install
     $installprefix = undef;
 
-    my $topdir = "$RealBin/.." || '..';
+    my $topdir = path($RealBin, "..")->realpath->to_string;
     $installprefix ||= $topdir;
     unshift @INC, $installprefix;
 }
@@ -111,7 +112,7 @@ BEGIN {
 use log qw(diag);
 use Feature::Compat::Try;
 use Getopt::Long;
-use Mojo::File qw(curfile);
+use Mojo::File qw(curfile path);
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure('no_ignore_case');
 use OpenQA::Isotovideo::Interface;
