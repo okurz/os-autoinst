@@ -428,20 +428,10 @@ subtest 'pretty_serial_marker_complex_cmds' => sub {
 
 subtest 'pretty_serial_marker_fragmented' => sub {
     my $d = distribution->new;
-    my $mock_testapi = Test::MockModule->new('testapi');
-    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-    $mock_bmwqemu->noop('log_call');
-    $mock_testapi->redefine(query_isotovideo => sub { });
-    $mock_testapi->redefine(type_string => sub { });
-    $mock_testapi->redefine(current_console => sub { 'test-console' });
-    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
-    $testapi::serialdev = 'ttyS0';
+    my @mocks = _setup_pretty_marker_mock();
     $d->{_serial_marker_level}->{'test-console'} = 3;
-
-    # Simulate a fragmented/truncated marker that doesn't match the regex
-    $mock_testapi->redefine(wait_serial => sub { return 'OA:DONE-0-' }); # Missing fingerprint
-
-    is $d->script_run('zypper lr'), undef, 'Level 3 handles fragmented/missing fingerprints by returning undef';
+    $mocks[0]->redefine(wait_serial => sub { 'OA:DONE-0-' });
+    is $d->script_run('zypper lr'), undef, 'Level 3 returns undef on missing fingerprint';
 };
 
 subtest 'pretty_serial_marker_redirection_guard' => sub {
