@@ -407,6 +407,49 @@ subtest 'pretty_serial_marker_concurrency' => sub {
     is $d->script_run('curl http://localhost/url'), 0, 'Level 3 correctly isolates target command fingerprint from interleaved background markers';
 };
 
+subtest 'pretty_serial_marker_complex_cmds' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->noop('log_call');
+    $mock_testapi->redefine(query_isotovideo => sub { });
+    $mock_testapi->redefine(type_string => sub { });
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $testapi::serialdev = 'ttyS0';
+    $d->{_serial_marker_level}->{'test-console'} = 3;
+
+    my @cases = (
+        {
+            cmd => "cat <<EOF\nfoo\nEOF",
+            msg => 'Multi-line here-doc'
+        },
+        {
+            cmd => "echo 'hello'; >&2 echo \"world\"",
+            msg => 'Complex quoting and redirection'
+        },
+        {
+            cmd => "rm -rf /", # short command
+            msg => 'Short command (no truncation)'
+        },
+        {
+            cmd => "abc", # very short command
+            msg => 'Very short command'
+        }
+    );
+
+    for my $case (@cases) {
+        my $match_len = 3;
+        my $fp = length($case->{cmd}) > $match_len * 2 ? substr($case->{cmd}, 0, $match_len) . substr($case->{cmd}, -$match_len) : $case->{cmd};
+        $mock_testapi->redefine(wait_serial => sub {
+                my ($regexp) = @_;
+                return "OA:DONE-0-$fp" if ref($regexp) eq 'Regexp' && "OA:DONE-0-$fp" =~ $regexp;
+                return undef;
+        });
+        is $d->script_run($case->{cmd}), 0, "Level 3 handles $case->{msg}";
+    }
+};
+
 done_testing;
 
 1;
