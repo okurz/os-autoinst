@@ -386,8 +386,7 @@ subtest 'serial_terminal_redirection_guard' => sub {
     like $typed, qr/__oa_prompt\(\) \{ r=\$\?; if \[ -n "\$OA_NO_MARKER" \]/, '__oa_prompt must capture the exit status r=$? as the absolute first statement to prevent internal conditional checks from overwriting it';
 };
 
-subtest 'pretty_serial_marker_concurrency' => sub {
-    my $d = distribution->new;
+sub _setup_pretty_marker_mock {
     my $mock_testapi = Test::MockModule->new('testapi');
     my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
     $mock_bmwqemu->noop('log_call');
@@ -396,15 +395,15 @@ subtest 'pretty_serial_marker_concurrency' => sub {
     $mock_testapi->redefine(current_console => sub { 'test-console' });
     $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
     $testapi::serialdev = 'ttyS0';
+    return ($mock_testapi, $mock_bmwqemu);
+}
+
+subtest 'pretty_serial_marker_concurrency' => sub {
+    my $d = distribution->new;
+    my @mocks = _setup_pretty_marker_mock();
     $d->{_serial_marker_level}->{'test-console'} = 3;
-
-    # Simulate a stream with interleaved markers from a background job
-    # background 'tar' (exit 1, fingerprint 'tar') followed by foreground 'curl' (exit 0, fingerprint 'cururl')
-    $mock_testapi->redefine(wait_serial => sub {
-            return 'OA:DONE-1-tarOA:DONE-0-cururl';
-    });
-
-    is $d->script_run('curl http://localhost/url'), 0, 'Level 3 correctly isolates target command fingerprint from interleaved background markers';
+    $mocks[0]->redefine(wait_serial => sub { 'OA:DONE-1-tarOA:DONE-0-cururl' });
+    is $d->script_run('curl http://localhost/url'), 0, 'Level 3 isolates target fingerprint from background markers';
 };
 
 subtest 'pretty_serial_marker_complex_cmds' => sub {
