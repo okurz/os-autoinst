@@ -455,10 +455,10 @@ sub install_serial_marker_hook ($self, $level) {
     my $dev = "/dev/$testapi::serialdev";
     my $func;
     if ($level == 3) {
-        $func = qq{__oa_prompt() { r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else c=\$(fc -ln -1 2>/dev/null); c=\${c#\${c%%[![:space:]]*}}; h="\${c:0:3}\${c: -3}"; printf "OA:DONE-%d-%s\\nOA:START\\n" \$r "\$h" > $dev; fi; }};
+        $func = qq{__oa_prompt() { _r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else _c=\$(fc -ln -1 2>/dev/null); _c=\${_c#\${_c%%[![:space:]]*}}; _h="\${_c:0:3}\${_c: -3}"; printf "OA:DONE-%d-%s\\nOA:START\\n" \$_r "\$_h" > $dev; fi; }};
     }
     else {
-        $func = qq{__oa_prompt() { r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; elif [ -n "\$__OA_MARK" ]; then echo "\${__OA_MARK}-\$r-" > $dev; unset __OA_MARK; fi; echo "OA:START" > $dev; }};
+        $func = qq{__oa_prompt() { _r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; elif [ -n "\$__OA_MARK" ]; then echo "\${__OA_MARK}-\$_r-" > $dev; unset __OA_MARK; fi; echo "OA:START" > $dev; }};
     }
     my $pc = 'PROMPT_COMMAND=__oa_prompt';
 
