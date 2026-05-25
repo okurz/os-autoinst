@@ -363,7 +363,7 @@ subtest 'serial_terminal_redirection_guard' => sub {
     delete $d->{_serial_marker_hook_persistent}->{'test-console'};
     $d->{_serial_marker_level}->{'test-console'} = 3;
     $d->install_serial_marker_hook(3);
-    like $typed, qr/__oa_prompt\(\) \{ r=\$\?; if \[ -n "\$OA_NO_MARKER" \]/, '__oa_prompt must capture the exit status r=$? as the absolute first statement to prevent internal conditional checks from overwriting it';
+    like $typed, qr/__oa_prompt\(\) \{ _r=\$\?; if \[ -n "\$OA_NO_MARKER" \]/, '__oa_prompt must capture the exit status _r=$? as the absolute first statement to prevent internal conditional checks from overwriting it';
 };
 
 done_testing;
