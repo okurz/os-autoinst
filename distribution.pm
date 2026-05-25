@@ -164,39 +164,42 @@ sub script_run ($self, $cmd, @args) {
             $level = 1;
             $skip_pretty = 1;
         }
-        my ($str, $wait_pattern);
+        my ($res, $match);
         if ($level == 3) {
             my $match_len = 3;
             my $fingerprint = length($cmd) > $match_len * 2 ? substr($cmd, 0, $match_len) . substr($cmd, -$match_len) : $cmd;
             my $escaped = quotemeta $fingerprint;
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
-            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-$escaped/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
-            return undef unless $res;
-            return ($res =~ /OA:DONE-(\d+)-$escaped/)[0];
-        }
-        $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
-        $wait_pattern = qr/$str-(\d+)-/;
-        if ($level == 2) {
-            testapi::type_string "export __OA_MARK=$str; $cmd\n", max_interval => $args{max_interval};
+            $res = testapi::wait_serial(qr/OA:DONE-(\d+)-$escaped/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
+            $match = qr/OA:DONE-(\d+)-$escaped/;
         }
         else {
-            my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
-            my $final_cmd = $skip_pretty ? "OA_NO_MARKER=1; $cmd" : $cmd;
-            if (testapi::is_serial_terminal) {
-                testapi::type_string "$final_cmd$marker", max_interval => $args{max_interval};
-                testapi::wait_serial($final_cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $final_cmd) + 128, internal_marker => 1)
-                  or _handle_cmd_typing_error($final_cmd, \%args);
-                testapi::type_string "\n", max_interval => $args{max_interval};
+            my $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
+            my $wait_pattern = qr/$str-(\d+)-/;
+            if ($level == 2) {
+                testapi::type_string "export __OA_MARK=$str; $cmd\n", max_interval => $args{max_interval};
             }
             else {
-                testapi::type_string "$final_cmd", max_interval => $args{max_interval};
-                testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
+                my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
+                my $final_cmd = $skip_pretty ? "OA_NO_MARKER=1; $cmd" : $cmd;
+                if (testapi::is_serial_terminal) {
+                    testapi::type_string "$final_cmd$marker", max_interval => $args{max_interval};
+                    testapi::wait_serial($final_cmd . $marker, no_regex => 1, quiet => $args{quiet}, buffer_size => (length $final_cmd) + 128, internal_marker => 1)
+                      or _handle_cmd_typing_error($final_cmd, \%args);
+                    testapi::type_string "\n", max_interval => $args{max_interval};
+                }
+                else {
+                    testapi::type_string "$final_cmd", max_interval => $args{max_interval};
+                    testapi::type_string "$marker > /dev/$testapi::serialdev\n", max_interval => $args{max_interval};
+                }
             }
+            $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
+            $match = $wait_pattern;
         }
-        my $res = testapi::wait_serial($wait_pattern, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
+        $res or _handle_cmd_typing_error($cmd, \%args);
         return undef unless $res;
-        return ($res =~ $wait_pattern)[0];
+        return ($res =~ $match)[0];
     }
     else {
         testapi::type_string "$cmd", max_interval => $args{max_interval};
