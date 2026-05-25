@@ -168,12 +168,12 @@ sub script_run ($self, $cmd, @args) {
         if ($level == 3) {
             my $match_len = 3;
             my $fingerprint = length($cmd) > $match_len * 2 ? substr($cmd, 0, $match_len) . substr($cmd, -$match_len) : $cmd;
-            my $escaped = quotemeta($fingerprint);
+            my $escaped = quotemeta $fingerprint;
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
             my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-$escaped/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
             return undef unless $res;
-            return ($res =~ /OA:DONE-(\d+)-/)[0];
+            return ($res =~ /OA:DONE-(\d+)-$escaped/)[0];
         }
         $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         $wait_pattern = qr/$str-(\d+)-/;
