@@ -414,8 +414,8 @@ subtest 'pretty_serial_marker_complex_cmds' => sub {
     my @cases = (
         {cmd => "cat <<EOF\nfoo\nEOF", msg => 'multi-line here-doc'},
         {cmd => "echo 'hello'; >&2 echo \"world\"", msg => 'complex quoting'},
-        {cmd => "rm -rf /", msg => 'short command'},
-        {cmd => "abc", msg => 'very short command'}
+        {cmd => 'rm -rf /', msg => 'short command'},
+        {cmd => 'abc', msg => 'very short command'}
     );
 
     for my $case (@cases) {
