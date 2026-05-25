@@ -408,43 +408,20 @@ subtest 'pretty_serial_marker_concurrency' => sub {
 
 subtest 'pretty_serial_marker_complex_cmds' => sub {
     my $d = distribution->new;
-    my $mock_testapi = Test::MockModule->new('testapi');
-    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-    $mock_bmwqemu->noop('log_call');
-    $mock_testapi->redefine(query_isotovideo => sub { });
-    $mock_testapi->redefine(type_string => sub { });
-    $mock_testapi->redefine(current_console => sub { 'test-console' });
-    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
-    $testapi::serialdev = 'ttyS0';
+    my @mocks = _setup_pretty_marker_mock();
     $d->{_serial_marker_level}->{'test-console'} = 3;
 
     my @cases = (
-        {
-            cmd => "cat <<EOF\nfoo\nEOF",
-            msg => 'Multi-line here-doc'
-        },
-        {
-            cmd => "echo 'hello'; >&2 echo \"world\"",
-            msg => 'Complex quoting and redirection'
-        },
-        {
-            cmd => "rm -rf /", # short command
-            msg => 'Short command (no truncation)'
-        },
-        {
-            cmd => "abc", # very short command
-            msg => 'Very short command'
-        }
+        {cmd => "cat <<EOF\nfoo\nEOF", msg => 'multi-line here-doc'},
+        {cmd => "echo 'hello'; >&2 echo \"world\"", msg => 'complex quoting'},
+        {cmd => "rm -rf /", msg => 'short command'},
+        {cmd => "abc", msg => 'very short command'}
     );
 
     for my $case (@cases) {
-        my $match_len = 3;
-        my $fp = length($case->{cmd}) > $match_len * 2 ? substr($case->{cmd}, 0, $match_len) . substr($case->{cmd}, -$match_len) : $case->{cmd};
-        $mock_testapi->redefine(wait_serial => sub {
-                my ($regexp) = @_;
-                return "OA:DONE-0-$fp" if ref($regexp) eq 'Regexp' && "OA:DONE-0-$fp" =~ $regexp;
-                return undef;
-        });
+        my $m = 3;
+        my $fp = length($case->{cmd}) > $m * 2 ? substr($case->{cmd}, 0, $m) . substr($case->{cmd}, -$m) : $case->{cmd};
+        $mocks[0]->redefine(wait_serial => sub { ref($_[0]) eq 'Regexp' && "OA:DONE-0-$fp" =~ $_[0] ? "OA:DONE-0-$fp" : undef });
         is $d->script_run($case->{cmd}), 0, "Level 3 handles $case->{msg}";
     }
 };
