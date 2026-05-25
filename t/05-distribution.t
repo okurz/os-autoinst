@@ -496,6 +496,46 @@ subtest 'pretty_serial_marker_redirection_guard' => sub {
     like $typed, qr/OA_NO_MARKER=1; /, 'Guard prepends OA_NO_MARKER=1 for manual redirection';
 };
 
+subtest 'pretty_serial_marker_multi_console' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->noop('log_call');
+    $mock_testapi->redefine(query_isotovideo => sub { });
+    my $typed = '';
+    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
+    $testapi::serialdev = 'ttyS0';
+
+    $mock_testapi->redefine(wait_serial => sub {
+            my ($regexp) = @_;
+            return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
+            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
+            return 'OA:DONE-0-foo';
+    });
+
+    # Console 1 setup
+    $mock_testapi->redefine(current_console => sub { 'console1' });
+    $typed = '';
+    $d->script_run('foo');
+    like $typed, qr/grep -q __oa_prompt/, 'Initial install on console1';
+    ok $d->{_serial_marker_hook_installed}->{console1}, 'Console 1 marked as installed';
+
+    # Switch to Console 2
+    $mock_testapi->redefine(current_console => sub { 'console2' });
+    $typed = '';
+    $d->script_run('foo');
+    like $typed, qr/grep -q __oa_prompt/, 'Independent install on console2';
+    ok $d->{_serial_marker_hook_installed}->{console2}, 'Console 2 marked as installed';
+
+    # Switch back to Console 1
+    $mock_testapi->redefine(current_console => sub { 'console1' });
+    $typed = '';
+    $d->script_run('foo');
+    unlike $typed, qr/grep -q __oa_prompt/, 'No re-install on console1 (state preserved)';
+};
+
 done_testing;
 
 1;
