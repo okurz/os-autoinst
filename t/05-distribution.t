@@ -468,6 +468,34 @@ subtest 'pretty_serial_marker_fragmented' => sub {
     is $d->script_run('zypper lr'), undef, 'Level 3 handles fragmented/missing fingerprints by returning undef';
 };
 
+subtest 'pretty_serial_marker_redirection_guard' => sub {
+    my $d = distribution->new;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    $mock_bmwqemu->noop('log_call');
+    $mock_bmwqemu->noop('diag');
+    $mock_testapi->redefine(query_isotovideo => sub { });
+    my $typed = '';
+    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
+    $mock_testapi->redefine(current_console => sub { 'test-console' });
+    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
+    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
+    $testapi::serialdev = 'ttyS0';
+    $d->{_serial_marker_level}->{'test-console'} = 3;
+
+    # Mock wait_serial for Level 1 fallback
+    $mock_testapi->redefine(wait_serial => sub {
+            my ($regexp) = @_;
+            return 'SRfoo-0-' if $regexp =~ /SRfoo/;
+            return undef;
+    });
+
+    # Manual redirection command should trigger guard (OA_NO_MARKER=1)
+    $typed = '';
+    $d->script_run('echo test > /dev/ttyS0');
+    like $typed, qr/OA_NO_MARKER=1; /, 'Guard prepends OA_NO_MARKER=1 for manual redirection';
+};
+
 done_testing;
 
 1;
