@@ -99,14 +99,34 @@ subtest 'pretty_serial_marker' => sub {
             my ($regexp) = @_;
             return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
             return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
-            return 'OA:DONE-abcd-0-foo';
+            return 'OA:DONE-0-foo';
     });
 
     $d->{_serial_marker_level} = {};
     $typed_string = '';
-    is $d->script_run('foo'), 0, 'Level 3 returns exit code';
+    is $d->script_run('foo'), 0, 'Level 3 returns exit code (short cmd)';
     like $typed_string, qr/foo\n$/, 'Level 3 ends with command + newline';
-    is substr($typed_string, -4), "foo\n", 'Level 3 uses clean command line';
+
+    # Fingerprint check for long command
+    my $long_cmd = 'zypper install some-package';
+    $mock_testapi->redefine(wait_serial => sub {
+            my ($regexp) = @_;
+            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
+            # zypage is the 3+3 fingerprint for 'zypper install some-package'
+            return 'OA:DONE-0-zypage';
+    });
+    is $d->script_run($long_cmd), 0, 'Level 3 handles long command fingerprint (3+3)';
+
+    # Special characters in fingerprint
+    my $special_cmd = 'ls /tmp/foo*';
+    $mock_testapi->redefine(wait_serial => sub {
+            my ($regexp) = @_;
+            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
+            # 'ls oo*' fingerprint
+            return 'OA:DONE-0-ls oo*';
+    });
+    is $d->script_run($special_cmd), 0, 'Level 3 handles special characters in fingerprint';
+
 
     $mock_testapi->redefine(wait_serial => sub { undef });
     $d->{_serial_marker_level} = {};

@@ -166,11 +166,14 @@ sub script_run ($self, $cmd, @args) {
         }
         my ($str, $wait_pattern);
         if ($level == 3) {
+            my $match_len = 3;
+            my $fingerprint = length($cmd) > $match_len * 2 ? substr($cmd, 0, $match_len) . substr($cmd, -$match_len) : $cmd;
+            my $escaped = quotemeta($fingerprint);
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
-            my $res = testapi::wait_serial(qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
+            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-$escaped/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
             return undef unless $res;
-            return ($res =~ /OA:DONE-[0-9a-f]{4}-(\d+)-/)[0];
+            return ($res =~ /OA:DONE-(\d+)-/)[0];
         }
         $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         $wait_pattern = qr/$str-(\d+)-/;
@@ -452,7 +455,7 @@ sub install_serial_marker_hook ($self, $level) {
     my $dev = "/dev/$testapi::serialdev";
     my $func;
     if ($level == 3) {
-        $func = qq{__oa_prompt() { r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else c=\$(fc -ln -1 2>/dev/null); printf "OA:DONE-%04x-%d-%s\\nOA:START\\n" \$RANDOM \$r "\${c#\${c%%[![:space:]]*}}" > $dev; fi; }};
+        $func = qq{__oa_prompt() { r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else c=\$(fc -ln -1 2>/dev/null); c=\${c#\${c%%[![:space:]]*}}; [ \${#c} -gt 6 ] && h="\${c:0:3}\${c: -3}" || h="\$c"; printf "OA:DONE-%d-%s\\nOA:START\\n" \$r "\$h" > $dev; fi; }};
     }
     else {
         $func = qq{__oa_prompt() { r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; elif [ -n "\$__OA_MARK" ]; then echo "\${__OA_MARK}-\$r-" > $dev; unset __OA_MARK; fi; echo "OA:START" > $dev; }};

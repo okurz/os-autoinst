@@ -576,14 +576,14 @@ subtest record_serialresult_hiding => sub {
         {
             name => 'expected regex is hidden and regex marker is stripped when HIDE_MARKER_EVALUATION is set',
             vars => {HIDE_MARKER_EVALUATION => 1},
-            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/],
+            params => ['regex', 'ok', "command output\nOA:DONE-0-foo\n", internal_marker => 1, marker_pattern => qr/OA:DONE-(\d+)-foo/],
             expected => [qr/command output\n\s*\n/],
-            not_expected => [qr/# wait_serial expected: regex/, qr/OA:DONE-1234-0-/],
+            not_expected => [qr/# wait_serial expected: regex/, qr/OA:DONE-0-foo/],
         },
         {
             name => 'Exit code is displayed when capture_name is provided',
             vars => {PRETTY_SERIAL_MARKER => 1},
-            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code'],
+            params => ['regex', 'ok', "command output\nOA:DONE-0-foo\n", internal_marker => 1, marker_pattern => qr/OA:DONE-(\d+)-foo/, capture_name => 'Exit code'],
             expected => [qr/# Exit code: 0/, qr/command output\n\s*\n/],
             not_expected => [qr/# wait_serial expected: regex/],
         },
@@ -604,7 +604,7 @@ subtest record_serialresult_hiding => sub {
         {
             name => 'regex marker is provided but string does not match (e.g. on timeout)',
             vars => {PRETTY_SERIAL_MARKER => 1},
-            params => ['regex', 'fail', "some output that did not hit the marker\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code'],
+            params => ['regex', 'fail', "some output that did not hit the marker\n", internal_marker => 1, marker_pattern => qr/OA:DONE-(\d+)-foo/, capture_name => 'Exit code'],
             expected => [qr/some output that did not hit the marker\n/],
             not_expected => [qr/# Exit code:/],
         },
