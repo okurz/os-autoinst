@@ -436,30 +436,16 @@ subtest 'pretty_serial_marker_fragmented' => sub {
 
 subtest 'pretty_serial_marker_redirection_guard' => sub {
     my $d = distribution->new;
-    my $mock_testapi = Test::MockModule->new('testapi');
-    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-    $mock_bmwqemu->noop('log_call');
-    $mock_bmwqemu->noop('diag');
-    $mock_testapi->redefine(query_isotovideo => sub { });
     my $typed = '';
-    $mock_testapi->redefine(type_string => sub { $typed .= $_[0] });
-    $mock_testapi->redefine(current_console => sub { 'test-console' });
-    $mock_testapi->redefine(get_var => sub { $_[0] eq 'PRETTY_SERIAL_MARKER' ? 1 : undef });
-    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
-    $testapi::serialdev = 'ttyS0';
+    my @mocks = _setup_pretty_marker_mock();
+    $mocks[1]->noop('diag');
+    $mocks[0]->redefine(type_string => sub { $typed .= $_[0] });
+    $mocks[0]->redefine(is_serial_terminal => sub { 0 });
     $d->{_serial_marker_level}->{'test-console'} = 3;
+    $mocks[0]->redefine(wait_serial => sub { $_[0] =~ /SRfoo/ ? 'SRfoo-0-' : undef });
 
-    # Mock wait_serial for Level 1 fallback
-    $mock_testapi->redefine(wait_serial => sub {
-            my ($regexp) = @_;
-            return 'SRfoo-0-' if $regexp =~ /SRfoo/;
-            return undef;
-    });
-
-    # Manual redirection command should trigger guard (OA_NO_MARKER=1)
-    $typed = '';
     $d->script_run('echo test > /dev/ttyS0');
-    like $typed, qr/OA_NO_MARKER=1; /, 'Guard prepends OA_NO_MARKER=1 for manual redirection';
+    like $typed, qr/OA_NO_MARKER=1; /, 'OA_NO_MARKER=1 prepended for manual redirection';
 };
 
 subtest 'pretty_serial_marker_multi_console' => sub {
