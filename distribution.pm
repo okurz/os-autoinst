@@ -167,13 +167,13 @@ sub script_run ($self, $cmd, @args) {
         my ($str, $wait_pattern);
         if ($level == 3) {
             my $match_len = 3;
-            my $fingerprint = substr($cmd, 0, $match_len) . substr($cmd, -$match_len);
+            my $fingerprint = (substr $cmd, 0, $match_len) . (substr $cmd, -$match_len);
             my $escaped = quotemeta $fingerprint;
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
             my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-$escaped/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
             return undef unless $res;
-            return ($res =~ /OA:DONE-(\d+)-/)[0];
+            return ($res =~ /OA:DONE-(\d+)-$escaped/)[0];
         }
         $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         $wait_pattern = qr/$str-(\d+)-/;
@@ -455,22 +455,21 @@ sub install_serial_marker_hook ($self, $level) {
     my $dev = "/dev/$testapi::serialdev";
     my $func;
     if ($level == 3) {
-        $func = qq{__oa_prompt() { _r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else _c=\$(fc -ln -1 2>/dev/null); _c=\${_c#\${_c%%[![:space:]]*}}; printf "OA:DONE-%d-%s%s\\nOA:START\\n" \$_r "\${_c:0:3}" "\${_c: -3}" > $dev; fi; }};
+        $func = qq{__oa_prompt() { _r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else _c=\$(fc -ln -1 2>/dev/null); _c=\${_c#\${_c%%[![:space:]]*}}; printf "OA:DONE-%d-%s%s\\\\nOA:START\\\\n" \$_r "\${_c:0:3}" "\${_c: -3}" > $dev; fi; }};
     }
     else {
         $func = qq{__oa_prompt() { _r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; elif [ -n "\$__OA_MARK" ]; then echo "\${__OA_MARK}-\$_r-" > $dev; unset __OA_MARK; fi; echo "OA:START" > $dev; }};
     }
     my $pc = 'PROMPT_COMMAND=__oa_prompt';
+    my $console = testapi::current_console() // 'default';
 
-    # Consolidate installation and persistence into a single typed line to minimize VNC overhead.
-    # We append to both ~/.bashrc and ~/.profile to cover both interactive and login shells.
-    # Sourcing ~/.bashrc then activates the hook in the current session.
-    testapi::type_string "grep -q __oa_prompt ~/.bashrc 2>/dev/null || { echo '$func; $pc' | tee -a ~/.bashrc ~/.profile >/dev/null; }; . ~/.bashrc\n";
-
-    my $console = testapi::current_console();
-    return undef unless defined $console;
+    # Use a helper file to minimize VNC typing for subsequent console setups.
+    testapi::enter_cmd "cat > /tmp/h <<'EOF'\n$func\n$pc\nEOF\n. /tmp/h";
+    unless ($self->{_serial_marker_hook_persistent}->{$console}) {
+        testapi::type_string "grep -q /tmp/h ~/.bashrc 2>/dev/null || echo '. /tmp/h' | tee -a ~/.bashrc ~/.profile >/dev/null\n";
+        $self->{_serial_marker_hook_persistent}->{$console} = 1;
+    }
     $self->{_serial_marker_hook_installed}->{$console} = 1;
-    $self->{_serial_marker_hook_persistent}->{$console} = 1;
 }
 
 =head2 reset_serial_marker
@@ -488,8 +487,7 @@ a reboot or when switching to a different OS/shell.
 =cut
 
 sub reset_serial_marker ($self, $console = undef) {
-    $console //= testapi::current_console();
-    return undef unless defined $console;
+    $console //= testapi::current_console() // 'default';
     delete $self->{_serial_marker_level}->{$console};
     $self->invalidate_serial_marker_hook($console);
 }
@@ -509,8 +507,7 @@ environment-specific hook needs to be re-installed for the new user.
 =cut
 
 sub invalidate_serial_marker_hook ($self, $console = undef) {
-    $console //= testapi::current_console();
-    return undef unless defined $console;
+    $console //= testapi::current_console() // 'default';
     delete $self->{_serial_marker_hook_installed}->{$console};
 }
 
@@ -586,8 +583,7 @@ Returns:
 =cut
 
 sub _detect_serial_marker_capability ($self) {
-    my $console = testapi::current_console();
-    return 1 unless defined $console;
+    my $console = testapi::current_console() // 'default';
     if (my $level = $self->{_serial_marker_level}->{$console}) {
         return $level if $level < 2 || $self->{_serial_marker_hook_installed}->{$console};
 
@@ -605,7 +601,7 @@ sub _detect_serial_marker_capability ($self) {
     if ($out && $out =~ /BASH:(?:[3-9]|\d{2,})/) {
         $level = 2;
         # Check if bash and history features are available to use pretty serial markers
-        testapi::type_string "type fc && set -o | grep -q 'history.*on' && echo \"FC:OK:\" > /dev/$testapi::serialdev\n";
+        testapi::type_string "type fc && set -o | grep -q 'history.*on' && history -s 'CHECK' && fc -ln -1 | grep -q 'CHECK' && echo \"FC:OK:\" > /dev/$testapi::serialdev\n";
         if (testapi::wait_serial(qr/FC:OK:/, 10)) {
             $level = 3;
         }
