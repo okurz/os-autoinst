@@ -597,9 +597,9 @@ sub _detect_serial_marker_capability ($self) {
     return $self->{_serial_marker_level}->{$console} = $level if !$pretty || $serial_term;
 
     testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
-    if (testapi::wait_serial(qr/BASH:([^:]*):/, timeout => 10)) {
-        my $version = $testapi::testapi_vars{serial_results}->[0];
-        if ($version =~ /^4\.[3-9]/ || $version =~ /^[5-9]\./) {
+    if (my $res = testapi::wait_serial(qr/BASH:([^:]*):/, timeout => 10)) {
+        my ($version) = $res =~ /BASH:([^:]*):/;
+        if ($version && ($version =~ /^4\.[3-9]/ || $version =~ /^[5-9]\./)) {
             testapi::type_string "type fc && set -o history && echo \"FC:OK:\" > /dev/$testapi::serialdev\n";
             if (testapi::wait_serial(qr/FC:OK:/, timeout => 5)) {
                 $level = 3;
