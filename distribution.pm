@@ -166,14 +166,12 @@ sub script_run ($self, $cmd, @args) {
         }
         my ($str, $wait_pattern);
         if ($level == 3) {
-            my $match_len = 3;
-            my $fingerprint = (substr $cmd, 0, $match_len) . (substr $cmd, -$match_len);
-            my $escaped = quotemeta $fingerprint;
+            my $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
             testapi::query_isotovideo('backend_clear_serial_buffer', {});
-            testapi::type_string "$cmd\n", max_interval => $args{max_interval};
-            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-$escaped/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
+            testapi::type_string "export OA_M=$str; $cmd\n", max_interval => $args{max_interval};
+            my $res = testapi::wait_serial(qr/OA:DONE-(\d+)-$str/, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
             return undef unless $res;
-            return ($res =~ /OA:DONE-(\d+)-$escaped/)[0];
+            return ($res =~ /OA:DONE-(\d+)-$str/)[0];
         }
         $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         $wait_pattern = qr/$str-(\d+)-/;
@@ -455,7 +453,7 @@ sub install_serial_marker_hook ($self, $level) {
     my $dev = "/dev/$testapi::serialdev";
     my $func;
     if ($level == 3) {
-        $func = qq{__oa_prompt() { _r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else _c=\$(fc -ln -1 2>/dev/null); _c=\${_c#\${_c%%[![:space:]]*}}; printf "OA:DONE-%d-%s%s\\\\nOA:START\\\\n" \$_r "\${_c:0:3}" "\${_c: -3}" > $dev; fi; }};
+        $func = qq{__oa_prompt() { _r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; else printf "OA:DONE-%d-%s\\\\nOA:START\\\\n" \$_r "\$OA_M" > $dev; fi; }};
     }
     else {
         $func = qq{__oa_prompt() { _r=\$?; if [ -n "\$OA_NO_MARKER" ]; then unset OA_NO_MARKER; elif [ -n "\$__OA_MARK" ]; then echo "\${__OA_MARK}-\$_r-" > $dev; unset __OA_MARK; fi; echo "OA:START" > $dev; }};
@@ -598,13 +596,10 @@ sub _detect_serial_marker_capability ($self) {
 
     testapi::type_string "echo \"BASH:\$BASH_VERSION:\" > /dev/$testapi::serialdev\n";
     my $out = testapi::wait_serial(qr/BASH:([^:]*):/, 10);
-    if ($out && $out =~ /BASH:(?:[3-9]|\d{2,})/) {
-        $level = 2;
-        # Check if bash and history features are available to use pretty serial markers
-        testapi::type_string "type fc && set -o | grep -q 'history.*on' && history -s 'CHECK' && fc -ln -1 | grep -q 'CHECK' && echo \"FC:OK:\" > /dev/$testapi::serialdev\n";
-        if (testapi::wait_serial(qr/FC:OK:/, 10)) {
-            $level = 3;
-        }
+    if ($out && $out =~ /BASH:([^:]*):/) {
+        my $version = $1;
+        # Trust that Bash 4.3+ has working fc/history for Level 3 pretty markers
+        $level = ($version =~ /^4\.[3-9]/ || $version =~ /^[5-9]\./) ? 3 : 2;
         $self->install_serial_marker_hook($level);
         bmwqemu::log_call("serial_marker: console '$console' Level $level detected");
     }

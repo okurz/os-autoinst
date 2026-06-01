@@ -81,28 +81,31 @@ subtest 'pretty_serial_marker' => sub {
     $mock_testapi->redefine(hashed_string => sub { return 'SR' . substr $_[0], 0, 8 });
     $mock_testapi->redefine(is_serial_terminal => sub { 0 });
 
+    # Case: Bash 4.4 -> Level 3
     $mock_testapi->redefine(wait_serial => sub {
             my ($regexp) = @_;
             return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
-            return undef if ref($regexp) eq 'Regexp' && $regexp =~ /FC/;
-            return 'SRfoo-0-';
+            return 'OA:DONE-0-SRfoo';
     });
 
     $typed_string = '';
     $d->script_run('foo');
-    like $typed_string, qr/export __OA_MARK=.*; foo\n/, 'Level 2 uses export marker';
+    is $d->{_serial_marker_level}->{'test-console'}, 3, 'Level 3 detected for Bash 4.4';
+    like $typed_string, qr/cat > \/tmp\/h <<'EOF'/, 'Level 3 installs hook';
+    like $typed_string, qr/export OA_M=.*; foo\n/, 'Level 3 types OA_M marker';
 
+    # Case: Bash 3.2 -> Level 2
     $mock_testapi->redefine(wait_serial => sub {
             my ($regexp) = @_;
-            return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
-            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
-            return 'OA:DONE-0-foofoo';
+            return 'BASH:3.2:' if ref($regexp) eq 'Regexp' && 'BASH:3.2:' =~ $regexp;
+            return 'SRfoo-0-';
     });
 
     $d->{_serial_marker_level} = {};
     $typed_string = '';
-    is $d->script_run('foo'), 0, 'Level 3 returns exit code (short cmd)';
-    like $typed_string, qr/foo\n$/, 'Level 3 ends with command + newline';
+    $d->script_run('foo');
+    is $d->{_serial_marker_level}->{'test-console'}, 2, 'Level 2 detected for Bash 3.2';
+    like $typed_string, qr/export __OA_MARK=.*; foo\n/, 'Level 2 uses export marker';
 
 
     $mock_testapi->redefine(wait_serial => sub { undef });
@@ -148,341 +151,11 @@ sub _setup_pretty_marker_mock () {
 
 subtest 'pretty_serial_marker_concurrency' => sub {
     my $d = distribution->new;
-    my ($mock_testapi) = _setup_pretty_marker_mock();
-    $d->{_serial_marker_level}->{'test-console'} = 3;
-    # background 'tar' (exit 1) followed by foreground 'curl' (exit 0)
-    $mock_testapi->redefine(wait_serial => sub { 'OA:DONE-1-tarOA:DONE-0-cururl' });
-    is $d->script_run('curl http://localhost/url'), 0, 'Level 3 isolates target fingerprint from background markers';
-};
-
-subtest 'pretty_serial_marker_complex_cmds' => sub {
-    my $d = distribution->new;
-    my ($mock_testapi) = _setup_pretty_marker_mock();
-    $d->{_serial_marker_level}->{'test-console'} = 3;
-
-    my @cases = (
-        {cmd => "cat <<EOF\nfoo\nEOF", msg => 'multi-line here-doc'},
-        {cmd => "echo 'hello'; >&2 echo \"world\"", msg => 'complex quoting'},
-        {cmd => 'rm -rf /', msg => 'short command'},
-        {cmd => 'abc', msg => 'very short command'}
-    );
-
-    for my $case (@cases) {
-        my $fp = (substr $case->{cmd}, 0, 3) . (substr $case->{cmd}, -3);
-        $mock_testapi->redefine(wait_serial => sub { ref($_[0]) eq 'Regexp' && "OA:DONE-0-$fp" =~ $_[0] ? "OA:DONE-0-$fp" : undef });
-        is $d->script_run($case->{cmd}), 0, "Level 3 handles $case->{msg}";
-    }
-};
-
-subtest 'pretty_serial_marker_fragmented' => sub {
-    my $d = distribution->new;
-    my ($mock_testapi) = _setup_pretty_marker_mock();
-    $d->{_serial_marker_level}->{'test-console'} = 3;
-    $mock_testapi->redefine(wait_serial => sub { 'OA:DONE-0-' });
-    is $d->script_run('zypper lr'), undef, 'Level 3 returns undef on missing fingerprint';
-};
-
-subtest 'pretty_serial_marker_redirection_guard' => sub {
-    my $d = distribution->new;
-    my $typed = '';
-    my ($mock_testapi) = _setup_pretty_marker_mock();
-    $mock_bmwqemu_global->noop('diag');
-    $mock_testapi->redefine(type_string => sub {
-            my ($str, %args) = @_;
-            # special argument handling for backward compat
-            if (@_ == 2 && !ref $_[1]) {
-                %args = (max_interval => $_[1]);
-            }
-            $typed .= $str;
-            $typed .= "\n" if $args{lf};
-    });
-    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
-    $d->{_serial_marker_level}->{'test-console'} = 3;
-    $mock_testapi->redefine(wait_serial => sub { $_[0] =~ /SRfoo/ ? 'SRfoo-0-' : undef });
-
-    $d->script_run('echo test > /dev/ttyS0');
-    like $typed, qr/OA_NO_MARKER=1; /, 'OA_NO_MARKER=1 prepended for manual redirection';
-};
-
-subtest 'pretty_serial_marker_multi_console' => sub {
-    my $d = distribution->new;
-    my $typed = '';
-    my ($mock_testapi) = _setup_pretty_marker_mock();
-    $mock_testapi->redefine(type_string => sub {
-            my ($str, %args) = @_;
-            # special argument handling for backward compat
-            if (@_ == 2 && !ref $_[1]) {
-                %args = (max_interval => $_[1]);
-            }
-            $typed .= $str;
-            $typed .= "\n" if $args{lf};
-    });
-    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
-    $mock_testapi->redefine(wait_serial => sub {
-            return 'BASH:4.4:' if ref($_[0]) eq 'Regexp' && 'BASH:4.4:' =~ $_[0];
-            return 'FC:OK:' if ref($_[0]) eq 'Regexp' && 'FC:OK:' =~ $_[0];
-            return 'OA:DONE-0-foofoo';
-    });
-
-    $mock_testapi->redefine(current_console => sub { 'console1' });
-    $typed = '';
-    $d->script_run('foo');
-    like $typed, qr/cat > \/tmp\/h <<'EOF'/, 'install on console1';
-    ok $d->{_serial_marker_hook_installed}->{console1}, 'console1 installed';
-
-    $mock_testapi->redefine(current_console => sub { 'console2' });
-    $typed = '';
-    $d->script_run('foo');
-    like $typed, qr/cat > \/tmp\/h <<'EOF'/, 'independent install on console2';
-    ok $d->{_serial_marker_hook_installed}->{console2}, 'console2 installed';
-
-    $mock_testapi->redefine(current_console => sub { 'console1' });
-    $typed = '';
-    $d->script_run('foo');
-    unlike $typed, qr/cat > \/tmp\/h <<'EOF'/, 'no re-install on console1';
-};
-
-
-subtest 'reboot_safety' => sub {
-    my $d = distribution->new;
-    my ($mock_testapi) = _setup_pretty_marker_mock();
-    my $typed_string = '';
-    $mock_testapi->redefine(type_string => sub { $typed_string .= $_[0] });
-    $mock_testapi->redefine(hashed_string => sub { return 'SR' . substr $_[0], 0, 8 });
-    $mock_testapi->redefine(is_serial_terminal => sub { 0 });
-
-    # Initial detection (Level 3)
-    $mock_testapi->redefine(wait_serial => sub {
-            my ($regexp) = @_;
-            return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
-            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
-            return 'OA:DONE-0-foofoo';
-    });
-
-    $d->script_run('foo');
-    like $typed_string, qr/cat > \/tmp\/h <<'EOF'.*__oa_prompt\(\).*OA:DONE.*\. \/tmp\/h/s, 'Initial install';
-    $typed_string = '';
-
-    # Simulate console selection (e.g. after reboot/login)
-    $d->console_selected('test-console');
-
-    # Case 1: still there (e.g. persistent)
-    $typed_string = '';
-    $d->script_run('bar');
-    unlike $typed_string, qr/PROMPT_COMMAND=.*OA:DONE/, 'No re-install if still there';
-    like $typed_string, qr/bar\n/, 'Command typed';
-
-    # Case 2: manual clear (e.g. if we know it was lost)
-    $d->reset_serial_marker('test-console');
-    $typed_string = '';
-    $d->script_run('baz');
-    like $typed_string, qr/cat > \/tmp\/h <<'EOF'.*__oa_prompt\(\).*OA:DONE.*\. \/tmp\/h/s, 'Re-detect and re-install after resetting the serial marker';
-    like $typed_string, qr/baz\n/, 'Command typed after re-installation';
-
-    # Case 3: select_console triggers reset
-    $d->{_serial_marker_hook_installed}->{'test-console'} = 1;
-    $typed_string = '';
-    $mock_testapi->redefine(query_isotovideo => sub { return {activated => 1} });
-    $testapi::distri = $d;
-
-    testapi::select_console('test-console');
-    $d->script_run('qux');
-    like $typed_string, qr/BASH:/, 'Re-detect after select_console re-activates the console';
-};
-
-
-subtest 'sut_marker' => sub {
-    my $d = distribution->new;
-    my @test_cases = (
-        {cmd => 'ls -la /tmp', expected => 'OA:ls -11/tmp', msg => 'normal command'},
-        {cmd => '  ls  ', expected => 'OA:ls2ls', msg => 'trims and handles short command'},
-        {cmd => 'a', expected => 'OA:a1a', msg => 'very short command'},
-    );
-    for my $case (@test_cases) {
-        is $d->sut_marker($case->{cmd}), $case->{expected}, "sut_marker: $case->{msg}";
-    }
-};
-
-subtest 'set expected serial and autoinst failures' => sub {
-    my $d = distribution->new;
-    my @failures = (
-        {type => 'Soft', message => '%s Failure Message 1', pattern => 'Test Pattern1'},
-        {type => 'Hard', message => '%s Failure Message 2', pattern => 'Test Pattern2'},
-    );
-
-    for my $f (@failures) {
-        my $expected = [{message => sprintf($f->{message}, $f->{type}), pattern => qr/$f->{pattern}/}];
-        $d->set_expected_serial_failures($expected);
-        is_deeply $d->{serial_failures}, $expected, "set_expected_serial_failures: $f->{type}";
-        $d->set_expected_autoinst_failures($expected);
-        is_deeply $d->{autoinst_failures}, $expected, "set_expected_autoinst_failures: $f->{type}";
-    }
-};
-
-subtest 'disable_key_repeat' => sub {
-    my $mock_testapi = Test::MockModule->new('testapi');
-    my @called;
-    $mock_testapi->redefine(enter_cmd => sub { push @called, @_ });
-    $mock_testapi->noop('type_string');
-    distribution->new->disable_key_repeat;
-    like "@called", qr/kbdrate/, 'disable_key_repeat calls kbdrate';
-};
-
-subtest 'pretty_serial_marker_helpers' => sub {
-    my $d = distribution->new;
-    my $mock_testapi = Test::MockModule->new('testapi');
-    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-    my %vars;
-    $mock_testapi->redefine(get_var => sub { $vars{$_[0]} });
-    $mock_testapi->redefine(set_var => sub { $vars{$_[0]} = $_[1] });
-    $mock_testapi->redefine(current_console => sub { 'test-console' });
-    my $typed = '';
-    $mock_testapi->redefine(type_string => sub {
-            my ($str, %args) = @_;
-            # special argument handling for backward compat
-            if (@_ == 2 && !ref $_[1]) {
-                %args = (max_interval => $_[1]);
-            }
-            $typed .= $str;
-            $typed .= "\n" if $args{lf};
-    });
-    my $log_called = 0;
-    $mock_bmwqemu->redefine(log_call => sub { $log_called++ });
-
-    # set_pretty_serial_marker
-    $d->{_serial_marker_level}->{'test-console'} = 3;
-    $vars{PRETTY_SERIAL_MARKER} = 1;
-    $d->set_pretty_serial_marker(1);
-    is $d->get_pretty_serial_marker(), 1, 'get_pretty_serial_marker returns 1';
-    is $vars{PRETTY_SERIAL_MARKER}, 1, 'PRETTY_SERIAL_MARKER var still 1';
-    is $log_called, 0, 'no log_call if state matches fallback';
-
-    $d->set_pretty_serial_marker(0);
-    is $d->get_pretty_serial_marker(), 0, 'get_pretty_serial_marker returns 0 after override';
-    is $vars{PRETTY_SERIAL_MARKER}, 1, 'PRETTY_SERIAL_MARKER var UNCHANGED (no pollution)';
-    is $log_called, 1, 'log_call invoked when state changes';
-    ok !exists $d->{_serial_marker_level}->{'test-console'}, 'marker level reset';
-    $log_called = 0;
-
-    $d->set_pretty_serial_marker(0);
-    is $log_called, 0, 'no-op if value is the same';
-
-    $typed = '';
-    $d->{_pretty_serial_marker} = 1;    # Force state change for test
-    $d->set_pretty_serial_marker(0);
-    like $typed, qr/unset PROMPT_COMMAND/, 'unset PROMPT_COMMAND typed when turning off';
-
-    # pretty_serial_marker_guard
-    $vars{PRETTY_SERIAL_MARKER} = 1;
-    $d->{_pretty_serial_marker} = undef;
-    {
-        my $guard = $d->pretty_serial_marker_guard(0);
-        is $d->get_pretty_serial_marker(), 0, 'Value changed by guard';
-        is $vars{PRETTY_SERIAL_MARKER}, 1, 'Global var remains unchanged';
-    }
-    is $d->get_pretty_serial_marker(), 1, 'Value restored after guard scope';
-};
-
-subtest 'serial_marker_hook_persistence' => sub {
-    my $d = distribution->new;
-    my ($mock_testapi) = _setup_pretty_marker_mock();
-    my $typed = '';
-    $mock_testapi->redefine(type_string => sub {
-            my ($str, %args) = @_;
-            # special argument handling for backward compat
-            if (@_ == 2 && !ref $_[1]) {
-                %args = (max_interval => $_[1]);
-            }
-            $typed .= $str;
-            $typed .= "\n" if $args{lf};
-    });
-
-    # First install
-    $d->install_serial_marker_hook(3);
-    like $typed, qr/cat > \/tmp\/h <<'EOF'.*\. \/tmp\/h/s, 'Types consolidated setup with helper file';
-    ok $d->{_serial_marker_hook_persistent}->{'test-console'}, 'Persistence marked';
-
-    # Invalidate hook but keep persistence
-    $d->invalidate_serial_marker_hook('test-console');
-    $typed = '';
-    $d->install_serial_marker_hook(3);
-    like $typed, qr/\. \/tmp\/h/, 'Types setup again (with sourcing) when invalidated';
-};
-
-subtest 'serial_terminal_redirection_guard' => sub {
-    my $d = distribution->new;
-    my $mock_testapi = Test::MockModule->new('testapi');
-    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-    my %vars = (PRETTY_SERIAL_MARKER => 1);
-    $mock_testapi->redefine(get_var => sub { $vars{$_[0]} });
-    $mock_testapi->redefine(set_var => sub { $vars{$_[0]} = $_[1] });
-    $mock_testapi->redefine(current_console => sub { 'test-console' });
-    $mock_testapi->redefine(is_serial_terminal => sub { 1 });
-    $mock_testapi->redefine(backend_get_wait_still_screen_on_here_doc_input => sub { 0 });
-    my $typed = '';
-    my $diag_msg = '';
-    $mock_testapi->redefine(type_string => sub {
-            my ($str, %args) = @_;
-            # special argument handling for backward compat
-            if (@_ == 2 && !ref $_[1]) {
-                %args = (max_interval => $_[1]);
-            }
-            $typed .= $str;
-            $typed .= "\n" if $args{lf};
-    });
-    $mock_testapi->redefine(query_isotovideo => sub { });
-    $mock_bmwqemu->redefine(diag => sub { $diag_msg .= $_[0] });
-    $mock_bmwqemu->redefine(log_call => sub { });
-    $mock_testapi->redefine(wait_serial => sub {
-            my ($regexp) = @_;
-            return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
-            return 'FC:OK:' if ref($regexp) eq 'Regexp' && 'FC:OK:' =~ $regexp;
-            return 'OA:DONE-abcd-0-';
-    });
-
-    my @cases = (
-        {cmd => 'foo', guard => 0, msg => 'normal command without serial redirection does not trigger the guard'},
-        {cmd => 'foo | tee /dev/ttyS0', guard => 1, msg => 'piping to the serial terminal triggers the guard'},
-        {cmd => 'bar > /dev/ttyS0', guard => 1, msg => 'redirection to the serial terminal triggers the guard'},
-        {cmd => 'baz >> /dev/ttyS0', guard => 1, msg => 'appending to the serial terminal triggers the guard'},
-    );
-
-    for my $case (@cases) {
-        $typed = '';
-        $diag_msg = '';
-        $vars{PRETTY_SERIAL_MARKER} = 1;
-        $d->{_serial_marker_level}->{'test-console'} = 3;
-        $testapi::serialdev = 'ttyS0';
-        $d->{serial_term_prompt} = '# ';
-
-        $d->script_run($case->{cmd});
-        if ($case->{guard}) {
-            like $typed, qr/OA_NO_MARKER=1; /, $case->{msg};
-            like $diag_msg, qr/Manual redirection to \/dev\/ttyS0 is deprecated/, 'deprecation warning shown';
-        }
-        else {
-            unlike $typed, qr/OA_NO_MARKER=1; /, $case->{msg};
-            unlike $diag_msg, qr/Manual redirection to \/dev\/ttyS0 is deprecated/, 'no deprecation warning for normal command';
-        }
-        is $vars{PRETTY_SERIAL_MARKER}, 1, "PRETTY_SERIAL_MARKER is active again after '$case->{cmd}'";
-    }
-
-    $typed = '';
-    delete $d->{_serial_marker_hook_installed}->{'test-console'};
-    delete $d->{_serial_marker_hook_persistent}->{'test-console'};
-    $d->{_serial_marker_level}->{'test-console'} = 3;
-    $d->install_serial_marker_hook(3);
-    like $typed, qr/__oa_prompt\(\) \{ _r=\$\?; if \[ -n "\$OA_NO_MARKER" \]/, '__oa_prompt must capture the exit status _r=$? as the absolute first statement to prevent internal conditional checks from overwriting it';
-};
-
-
-1;
-subtest 'pretty_serial_marker_concurrency' => sub {
-    my $d = distribution->new;
     my ($mock_testapi, $mock_bmwqemu) = _setup_pretty_marker_mock();
     $d->{_serial_marker_level}->{'test-console'} = 3;
+    $mock_testapi->redefine(hashed_string => sub { return 'SRcurl' });
     # background 'tar' (exit 1) followed by foreground 'curl' (exit 0)
-    $mock_testapi->redefine(wait_serial => sub { 'OA:DONE-1-tarOA:DONE-0-cururl' });
+    $mock_testapi->redefine(wait_serial => sub { 'OA:DONE-1-SRtarOA:DONE-0-SRcurl' });
     is $d->script_run('curl http://localhost/url'), 0, 'Level 3 isolates target fingerprint from background markers';
 };
 
@@ -499,8 +172,8 @@ subtest 'pretty_serial_marker_complex_cmds' => sub {
     );
 
     for my $case (@cases) {
-        my $fp = (substr $case->{cmd}, 0, 3) . (substr $case->{cmd}, -3);
-        $mock_testapi->redefine(wait_serial => sub { ref($_[0]) eq 'Regexp' && "OA:DONE-0-$fp" =~ $_[0] ? "OA:DONE-0-$fp" : undef });
+        $mock_testapi->redefine(hashed_string => sub { return 'SRhash' });
+        $mock_testapi->redefine(wait_serial => sub { ref($_[0]) eq 'Regexp' && "OA:DONE-0-SRhash" =~ $_[0] ? "OA:DONE-0-SRhash" : undef });
         is $d->script_run($case->{cmd}), 0, "Level 3 handles $case->{msg}";
     }
 };
@@ -509,7 +182,8 @@ subtest 'pretty_serial_marker_fragmented' => sub {
     my $d = distribution->new;
     my ($mock_testapi, $mock_bmwqemu) = _setup_pretty_marker_mock();
     $d->{_serial_marker_level}->{'test-console'} = 3;
-    $mock_testapi->redefine(wait_serial => sub { 'OA:DONE-0-' });
+    $mock_testapi->redefine(hashed_string => sub { return 'SRhash' });
+    $mock_testapi->redefine(wait_serial => sub { 'OA:DONE-0-WRONG' });
     is $d->script_run('zypper lr'), undef, 'Level 3 returns undef on missing fingerprint';
 };
 
@@ -551,8 +225,7 @@ subtest 'pretty_serial_marker_multi_console' => sub {
     $mock_testapi->redefine(is_serial_terminal => sub { 0 });
     $mock_testapi->redefine(wait_serial => sub {
             return 'BASH:4.4:' if ref($_[0]) eq 'Regexp' && 'BASH:4.4:' =~ $_[0];
-            return 'FC:OK:' if ref($_[0]) eq 'Regexp' && 'FC:OK:' =~ $_[0];
-            return 'OA:DONE-0-foofoo';
+            return 'OA:DONE-0-SRfoo';
     });
 
     $mock_testapi->redefine(current_console => sub { 'console1' });
