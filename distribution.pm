@@ -88,7 +88,7 @@ sub become_root ($self) {
     $self->invalidate_serial_marker_hook();
 
     my $console = testapi::current_console() // 'sut';
-    my $level = $self->{_serial_marker_level}->{$console} // 1;
+    my $level = $self->get_pretty_serial_marker() ? ($self->{_serial_marker_level}->{$console} // 1) : 1;
 
     $self->install_serial_marker_hook($level) if $level > 1;
 
@@ -591,6 +591,8 @@ Returns:
 
 sub detect_serial_marker_capability ($self) {
     my $console = testapi::current_console() // 'sut';
+    return 1 if !$self->get_pretty_serial_marker();
+
     if (my $level = $self->{_serial_marker_level}->{$console}) {
         return $level if $level < 2 || $self->{_serial_marker_hook_installed}->{$console};
 
