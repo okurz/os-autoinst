@@ -365,6 +365,26 @@ within the container specified via `OS_AUTOINST_CONTAINER_IMAGE`. Additional dep
 (e.g. `os-autoinst-distri-opensuse-deps`) must be provided by that container image rather
 than the worker host.
 
+### Advanced Testing with Custom test-distribution dependencies (e.g. `osado`)
+
+If you are testing changes against tests that require custom dependencies not
+present in the default container image (e.g., `os-autoinst-distri-opensuse-deps`
+and `openQA-common` for `osado`), or if you need to run rootless Podman inside a
+restricted environment, you can bypass the default worker container wrap by
+manually overriding the `ISOTOVIDEO` command setting.
+
+For example, to run tests inside a rootless container while dynamically
+installing missing distribution dependencies and compiling your custom
+`os-autoinst` branch:
+
+```sh
+openqa-clone-job --skip-chained-deps --within-instance <target_job_url> \
+  _GROUP=0 \
+  CASEDIR=https://github.com/<your_username>/os-autoinst-distri-opensuse.git#<your_test_branch> \
+  WORKER_CLASS=<suitable_worker_class> \
+  ISOTOVIDEO="mkdir -p /var/lib/openqa/cache/podman/run /var/lib/openqa/cache/podman/config /var/lib/openqa/cache/podman/data && env HOME=/var/lib/openqa/cache/podman XDG_CONFIG_HOME=/var/lib/openqa/cache/podman/config XDG_DATA_HOME=/var/lib/openqa/cache/podman/data XDG_RUNTIME_DIR=/var/lib/openqa/cache/podman/run podman --root /var/lib/openqa/cache/podman/data/containers/storage --runroot /var/lib/openqa/cache/podman/run/containers --storage-opt ignore_chown_errors=true --cgroup-manager=cgroupfs --events-backend=file run --init --rm --entrypoint \"\" --device /dev/kvm -v \$(pwd):/pool -w /pool -v /var/lib/openqa/cache:/var/lib/openqa/cache registry.opensuse.org/devel/openqa/containers/os-autoinst_dev:latest sh -c 'zypper -n in os-autoinst-distri-opensuse-deps openQA-common && rm -rf os-autoinst && git clone --branch=<your_engine_branch> --depth=1 https://github.com/<your_username>/os-autoinst.git && make -C os-autoinst symlinks && os-autoinst/isotovideo -d'"
+```
+
 # Running isotovideo as CI check
 
 We provide a container to run `isotovideo` which can be used to run
