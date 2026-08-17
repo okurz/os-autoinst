@@ -254,9 +254,9 @@ subtest 'level3_marker_correlation' => sub {
 
     my $exit_code = $d->script_run('curl --logs');
     is $exit_code, 0, 'Level 3 script_run returns correct exit code on successful command match';
-    is scalar(@regexes_seen), 1, 'Only wait_serial for the anchored fingerprint is called when match succeeds';
-    like $regexes_seen[0], qr/OA:DONE-\[0-9a-f\]\{4\}-\(\\d\+\)-OA(?:\\:|:)curl11logs/,
-      'wait_serial matches the exact head4+len+tail4 command fingerprint of curl --logs';
+    is scalar(@regexes_seen), 1, 'Only one wait_serial is called when the anchored match succeeds';
+    like $regexes_seen[0], qr/OA:DONE-\[0-9a-f\]\{4\}-\(\\d\+\)-\(\?:OA(?:\\:|:)curl11logs\|OA:\)/,
+      'wait_serial uses the combined pattern anchored on the curl --logs fingerprint or a generic OA:DONE';
 
     my $fp = $d->sut_marker('curl --logs');
     my $regex = qr/OA:DONE-[0-9a-f]{4}-(\d+)-\Q$fp\E/;
@@ -274,9 +274,56 @@ subtest 'level3_marker_correlation' => sub {
     @regexes_seen = ();
     $mock_testapi->redefine(wait_serial => sub ($regexp, @) { push @regexes_seen, $regexp; return undef });
     $exit_code = $d->script_run('curl --logs');
-    is $exit_code, undef, 'Anchored match miss fails closed with undef instead of an unreliable generic fallback';
-    is scalar(@regexes_seen), 1, 'No second generic wait_serial is issued, preventing stale-marker mismatch and doubled timeout';
-    like $regexes_seen[0], qr/OA:DONE-\[0-9a-f\]\{4\}-\(\\d\+\)-OA(?:\\:|:)curl11logs/, 'The single wait_serial call uses the anchored fingerprint';
+    is $exit_code, undef, 'No marker at all returns undef (existing timeout path)';
+    is scalar(@regexes_seen), 1, 'Neither marker: single wait_serial, no recovery marker typed, no timeout multiplication';
+    like $regexes_seen[0], qr/OA:DONE-\[0-9a-f\]\{4\}-\(\\d\+\)-\(\?:OA(?:\\:|:)curl11logs\|OA:\)/,
+      'The single wait_serial call uses the combined anchored-or-generic pattern';
+
+    subtest 'fail-open recovery on generic-only match' => sub {
+        my $d = distribution->new;
+        my $diag = '';
+        $mock_bmwqemu->redefine(diag => sub { $diag .= $_[0] });
+        $d->{_serial_marker_level}->{'test-console'} = 3;
+        $d->{_serial_marker_hook_installed}->{'test-console'} = 1;
+        $typed = '';
+        my @waits;
+        # First wait_serial: the combined pattern sees only a foreign fingerprint's
+        # generic OA:DONE. Second wait_serial: the freshly typed classic marker.
+        $mock_testapi->redefine(wait_serial => sub ($regexp, @) {
+                push @waits, $regexp;
+                return 'OA:DONE-aaaa-7-OA:syst15_ctl' if @waits == 1;
+                my ($str) = ($typed =~ /echo (\S+)-\$\?/);
+                return "$str-42-";
+        });
+        my $rc = $d->script_run('curl --logs');
+        is $rc, 42, 'Exit code comes from the freshly typed classic recovery marker, not the foreign generic capture';
+        like $diag, qr/correlation lost.*curl --logs.*Downgrading/s, 'diag names the command and the downgrade';
+        is $d->{_serial_marker_level}->{'test-console'}, 1, 'Console permanently downgraded to level 1';
+        like $typed, qr{echo \S+-\$\?- > /dev/}, 'Standalone classic recovery marker typed (detection only, command not re-run)';
+        is scalar(@waits), 2, 'One combined wait plus one dedicated recovery wait';
+
+        # Next command uses the classic path directly, no re-running of detection.
+        $typed = '';
+        @waits = ();
+        $mock_testapi->redefine(wait_serial => sub ($regexp, @) { push @waits, $regexp; my ($s) = ($typed =~ /echo (\S+)-\\?\$\?/); return $s ? "$s-0-" : 'x-0-' });
+        $d->script_run('echo next');
+        unlike $typed, qr/BASH:/, 'After downgrade the next script_run uses the classic path without re-detecting';
+    };
+
+    subtest 'recovery marker miss falls through to undef' => sub {
+        my $d = distribution->new;
+        $mock_bmwqemu->redefine(diag => sub { });
+        $d->{_serial_marker_level}->{'test-console'} = 3;
+        $d->{_serial_marker_hook_installed}->{'test-console'} = 1;
+        my @waits;
+        $mock_testapi->redefine(wait_serial => sub ($regexp, @) {
+                push @waits, $regexp;
+                return 'OA:DONE-aaaa-7-OA:syst15_ctl' if @waits == 1;
+                return undef;
+        });
+        my $rc = $d->script_run('curl --logs');
+        is $rc, undef, 'If even the recovery marker fails, fall through to undef';
+    };
 };
 
 subtest 'set expected serial and autoinst failures' => sub {
@@ -450,7 +497,12 @@ subtest 'terminal_session_boundary' => sub {
 
     $mock_testapi->redefine(wait_serial => sub ($regexp, @) {
             return 'BASH:4.4:' if ref($regexp) eq 'Regexp' && 'BASH:4.4:' =~ $regexp;
-            return 'OA:DONE-abcd-0-';
+            # Return an anchored marker matching the command fingerprint carried
+            # in the combined regex, so the happy path (not correlation-loss
+            # recovery) is exercised here.
+            my ($fp) = ("$regexp" =~ /-\(\?:(OA(?:\\:|:)\w+)\|OA:\)/);
+            $fp =~ s/\\//g if $fp;
+            return 'OA:DONE-abcd-0-' . ($fp // 'OA:x');
     });
 
     $d->script_run('first_cmd');

@@ -191,10 +191,17 @@ sub script_run ($self, $cmd, @args) {
             testapi::type_string "$cmd\n", max_interval => $args{max_interval};
             $self->_check_sudo_password(\%args);
             my $fp = $self->sut_marker($cmd);
-            my $regex = qr/OA:DONE-[0-9a-f]{4}-(\d+)-\Q$fp\E/;
-            my $res = testapi::wait_serial($regex, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
+            # Wait for the anchored fingerprint or a bare OA:DONE. The generic
+            # branch is a *detector of broken correlation*, not a source of
+            # truth: it proves the command finished but its exit code may belong
+            # to a different command, so we recover the real one via a classic
+            # marker instead of trusting the generic capture.
+            my $anchored = qr/OA:DONE-[0-9a-f]{4}-(\d+)-\Q$fp\E/;
+            my $combined = qr/OA:DONE-[0-9a-f]{4}-(\d+)-(?:\Q$fp\E|OA:)/;
+            my $res = testapi::wait_serial($combined, timeout => $args{timeout}, quiet => $args{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
             return undef unless $res;
-            return ($res =~ $regex)[0];
+            return ($res =~ $anchored)[0] if $res =~ $anchored;
+            return $self->_recover_exit_code_after_correlation_loss($cmd, $fp, $res, \%args);
         }
         $str = testapi::hashed_string('SR' . $cmd . $args{timeout});
         $wait_pattern = qr/$str-(\d+)-/;
@@ -458,6 +465,28 @@ sub sut_marker ($self, $cmd) {
     my $head = substr $c, 0, 4;
     my $tail = $l >= 4 ? substr $c, -4 : $c;
     return "OA:${head}${l}${tail}";
+}
+
+# A generic OA:DONE proved the command finished but its fingerprint did not
+# match, so correlation is broken for this console (multi-line command,
+# HISTCONTROL quirk, non-bash sub-shell, history disabled, hook lost after a
+# user switch). Permanently downgrade the console to the classic mechanism and
+# recover the real exit code by typing a standalone classic marker: at this
+# point the shell is back at a prompt and $? still holds the user command's
+# status because the hook's first statement is r=$?. Re-running only the
+# detection (never the command) is safe for non-idempotent commands.
+sub _recover_exit_code_after_correlation_loss ($self, $cmd, $fp, $observed, $args) {
+    ($observed) = ($observed =~ /(OA:DONE-[0-9a-f]{4}-\d+-\S*)/);
+    bmwqemu::diag("pretty serial marker correlation lost for command '$cmd': expected fingerprint '$fp' but observed '" . ($observed // '?') . "'. Downgrading this console to the classic serial marker mechanism.");
+    $self->reset_serial_marker();
+    my $console = testapi::current_console() // 'sut';
+    $self->{_serial_marker_level}->{$console} = 1;
+    my $str = testapi::hashed_string('SRRECOVER' . $cmd);
+    testapi::type_string "echo $str-\$?- > /dev/$testapi::serialdev\n";
+    my $wait_pattern = qr/$str-(\d+)-/;
+    my $res = testapi::wait_serial($wait_pattern, timeout => 30, quiet => $args->{quiet}, record_command => $cmd, internal_marker => 1, capture_name => 'Exit code');
+    return undef unless $res;
+    return ($res =~ $wait_pattern)[0];
 }
 
 =head2 install_serial_marker_hook
