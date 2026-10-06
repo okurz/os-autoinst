@@ -156,6 +156,8 @@ add_custom_target(
     COMMAND ln -fs "../../tinycv.pm" "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/lib/tinycv.pm"
     COMMAND ln -fs $<TARGET_FILE:tinycv> "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/arch/auto/tinycv/tinycv.so"
     ${OUT_OF_SOURCE_TREE_BUILD_COMMANDS}
+    # Ensure X11/Fontconfig fonts required by localXvnc (icewm, xterm) are available in container builds
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/setup-fonts"
 )
 add_dependencies(symlinks videoencoder snd2png debugviewer tinycv)
 
