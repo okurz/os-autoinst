@@ -14,7 +14,6 @@ use Mojo::File qw(path tempdir);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
 use MIME::Base64 'encode_base64';
-use Encode 'encode_utf8';
 use cv;
 use basetest;
 
@@ -635,22 +634,16 @@ subtest record_serialresult_hiding => sub {
             name => 'Exit code is displayed when capture_name is provided',
             vars => {PRETTY_SERIAL_OUTPUT => 1},
             params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code'],
-            expected => [qr/# Result:\nwait_serial\ncommand output/s, qr/# Exit code: 0/],
-            not_expected => [qr/# wait_serial expected: regex/],
+            expected => [qr/# Exit code: 0/, qr/command output\n\n/],
+            not_expected => [qr/# wait_serial expected: regex/, qr/# Result:\nwait_serial/],
         },
         {
-            name => 'command is truncated to MAX_TITLE_LENGTH with ellipsis when capture_name is provided',
+            name => 'command is recorded once when capture_name and command are provided',
             vars => {PRETTY_SERIAL_OUTPUT => 1},
-            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code', command => 'systemctl status foo-bar-service.service'],
-            expected => [qr/# Result:\nsystemctl status fo@{[encode_utf8('…')]}\ncommand output/s, qr/# Exit code: 0/],
-            not_expected => [qr/# wait_serial expected: regex/],
-        },
-        {
-            name => 'multiline command uses only first line for title when capture_name is provided',
-            vars => {PRETTY_SERIAL_OUTPUT => 1},
-            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code', command => "echo 'hello'\necho 'second'"],
-            expected => [qr/# Result:\necho 'hello'\ncommand output/s, qr/# Exit code: 0/],
-            not_expected => [qr/# wait_serial expected: regex/],
+            params => ['regex', 'ok', "command output\nOA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code', command => 'zypper -n in openQA-worker'],
+            expected => [qr/# Command: zypper -n in openQA-worker\n# Result:\ncommand output\n/, qr/# Exit code: 0/],
+            not_expected => [qr/# Result:\nzypper/],
+            full => "# Command: zypper -n in openQA-worker\n# Result:\ncommand output\n\n# Exit code: 0\n",
         },
         {
             name => 'PID is displayed for background commands',
@@ -680,6 +673,7 @@ subtest record_serialresult_hiding => sub {
         $basetest->record_serialresult(@{$case->{params}});
         like $recorded_output, $_, "$case->{name} (contains expected)" for @{$case->{expected}};
         unlike $recorded_output, $_, "$case->{name} (does not contain unexpected)" for @{$case->{not_expected}};
+        is $recorded_output, $case->{full}, "$case->{name} (full result body)" if defined $case->{full};
     }
 };
 
