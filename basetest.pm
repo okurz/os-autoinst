@@ -485,7 +485,7 @@ sub record_serialresult ($self, $ref, $res, $string = undef, %args) {
     $output .= "# Command: $args{command}\n" if defined $args{command};
     $output .= "# wait_serial expected: $ref\n" unless $internal && $pretty;
     $output .= "# Result:\n";
-    $output .= "$output_string\n";
+    $output .= "$output_string\n" if length $output_string;
     if (defined $captured_val && $args{capture_name}) {
         $output .= "# $args{capture_name}: $captured_val\n";
     }

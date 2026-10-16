@@ -646,6 +646,22 @@ subtest record_serialresult_hiding => sub {
             full => "# Command: zypper -n in openQA-worker\n# Result:\ncommand output\n\n# Exit code: 0\n",
         },
         {
+            name => 'empty serial output is omitted from the result body',
+            vars => {PRETTY_SERIAL_OUTPUT => 1},
+            params => ['regex', 'ok', "OA:DONE-1234-0-\n", internal_marker => 1, marker_pattern => qr/OA:DONE-[0-9a-f]{4}-(\d+)-/, capture_name => 'Exit code', command => 'zypper -n in openQA-worker'],
+            expected => [qr/# Command: zypper -n in openQA-worker\n# Result:\n# Exit code: 0/],
+            not_expected => [qr/\n\n# Exit code/],
+            full => "# Command: zypper -n in openQA-worker\n# Result:\n# Exit code: 0\n",
+        },
+        {
+            name => 'empty serial output is omitted when PRETTY_SERIAL_OUTPUT is 0',
+            vars => {PRETTY_SERIAL_OUTPUT => 0},
+            params => ['regex', 'ok', '', internal_marker => 1, marker_pattern => 'marker'],
+            expected => [qr/# wait_serial expected: regex\n# Result:\n$/],
+            not_expected => [qr/\n\n/],
+            full => "# wait_serial expected: regex\n# Result:\n",
+        },
+        {
             name => 'PID is displayed for background commands',
             vars => {HIDE_MARKER_EVALUATION => 1},
             params => ['regex', 'ok', "background output\nMARKER-1234-\n", internal_marker => 1, marker_pattern => qr/MARKER-(\d+)-/, capture_name => 'PID'],
